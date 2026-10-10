@@ -1,6 +1,0 @@
-/* App specific transitions and root styling */
-#root {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}

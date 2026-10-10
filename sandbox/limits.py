@@ -30,7 +30,3 @@ def get_limits() -> SandboxLimits:
     )
 
 
-def probe_gpu() -> dict:
-    """Check if the Docker daemon lists an nvidia runtime and can run a test container."""
-    from sandbox.manager import probe_gpu as _probe_gpu
-    return _probe_gpu()

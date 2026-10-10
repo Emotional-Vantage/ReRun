@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { NavbarApp } from '../components/layout/NavbarApp';
 import { PhaseBar } from '../components/dashboard/PhaseBar';
 import { BudgetBar } from '../components/dashboard/BudgetBar';
 import { TracePanel } from '../components/dashboard/TracePanel';
 import { Terminal } from '../components/dashboard/Terminal';
+import { ReportToast } from '../components/ui/ReportToast';
 import { DiffView } from '../components/dashboard/DiffView';
 import { AttemptsTable } from '../components/dashboard/AttemptsTable';
 import { ApprovalModal } from '../components/dashboard/ApprovalModal';
@@ -50,6 +51,9 @@ export const Dashboard: React.FC = () => {
 
   // Terminal log stream
   const [currentLogText, setCurrentLogText] = useState<string>('');
+
+  // Surfaces the finished report to an operator who has scrolled past the banner.
+  const [showReportToast, setShowReportToast] = useState(false);
 
   // Initial load
   const loadState = useCallback(async () => {
@@ -128,6 +132,33 @@ export const Dashboard: React.FC = () => {
     onEvent: handleIncomingEvent,
   });
 
+  // Offer the report the moment one exists. Gating on phase === 'DONE' meant the operator
+  // waited through the optional statement-enrichment call with no way to reach the report.
+  const isReportReady =
+    state?.phase === 'DONE' || Boolean(state?.report_available) || Boolean(state?.final);
+
+  /*
+    Announce the report once, on the edge where it becomes available.
+
+    `isReportReady` is also true for every later poll and on every revisit of a
+    finished project, so firing off the value itself would re-toast a run that
+    completed days ago. The ref records whether this mount has already seen the
+    report exist: it starts null, is set on the first state that resolves it
+    either way, and only a false -> true crossing raises the toast. Opening an
+    already-finished project therefore stays quiet.
+
+    This sits with the other hooks and above the loading early-return, because a
+    hook after a conditional return changes the hook order between renders and
+    React tears the page down.
+  */
+  const wasReportReady = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (loading || !state) return;
+    const previously = wasReportReady.current;
+    wasReportReady.current = isReportReady;
+    if (previously === false && isReportReady) setShowReportToast(true);
+  }, [isReportReady, loading, state]);
+
   // Handle human patch approval
   const handleApprovePatch = async (comment?: string, confirmExtra?: boolean) => {
     if (!currentApprovalId || !id) return;
@@ -186,10 +217,6 @@ export const Dashboard: React.FC = () => {
     );
   }
 
-  // Offer the report the moment one exists. Gating on phase === 'DONE' meant the operator
-  // waited through the optional statement-enrichment call with no way to reach the report.
-  const isReportReady =
-    state?.phase === 'DONE' || Boolean(state?.report_available) || Boolean(state?.final);
   const activePatch =
     state?.patches && state.patches.length > 0 ? state.patches[state.patches.length - 1] : null;
 
@@ -242,6 +269,17 @@ export const Dashboard: React.FC = () => {
               <ArrowRight className="w-4 h-4 stroke-[3] text-[#FAF7F0]" />
             </button>
           </div>
+        )}
+
+        {showReportToast && (
+          <ReportToast
+            status={state?.final?.status || state?.status}
+            onOpen={() => {
+              setShowReportToast(false);
+              navigate(`/p/${id}/report`);
+            }}
+            onDismiss={() => setShowReportToast(false)}
+          />
         )}
 
         {/* Middle 3-Column Work Desk: Trace | Terminal | Diff */}

@@ -39,6 +39,7 @@ export function scrollToScene(id: string) {
   if (i < 0) return;
   const top = computeLayout(window.innerHeight)[i].start;
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.dispatchEvent(new CustomEvent('rerun:scene-jump'));
   window.scrollTo({ top, behavior: reduce ? 'auto' : 'smooth' });
 }
 
@@ -117,14 +118,98 @@ export function SceneStage({ scenes }: { scenes: SceneContent[] }) {
       sceneStore.set({ scene: ec > 0.5 && current < last ? current + 1 : current, theme });
     };
 
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(apply);
+    /*
+      Settle a half-torn page.
+
+      Stopping mid-tear used to leave the sheet frozen at whatever fraction the
+      scroll happened to end on, so the reader was left looking at two half
+      pages and neither scene's content. Once scrolling stops inside a tear
+      band we commit to one side: past SNAP_AT the tear finishes, before it the
+      page falls back shut. The threshold is deliberately below half, because a
+      tear that is already a third open reads as "going forward".
+
+      Only an idle scroll triggers this, never a frame mid-gesture, and the
+      programmatic scroll it fires is ignored by the next settle so the two
+      cannot chase each other. Anyone who has asked for less motion keeps the
+      free position they scrolled to.
+    */
+    const SNAP_AT = 0.4;
+    const SETTLE_MS = 140;
+    let settleTimer = 0;
+    let snapping = false;
+    let lastY = window.scrollY;
+    let goingDown = true;
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    const settle = () => {
+      settleTimer = 0;
+      if (snapping || reduceMotion.matches) return;
+
+      const y = window.scrollY;
+      const last = SCENES.length - 1;
+
+      // The page cannot be scrolled past its end, so a tear left open at the
+      // very bottom has nowhere to snap forward to. Leave it alone.
+      const maxY = document.documentElement.scrollHeight - window.innerHeight;
+
+      for (let i = 0; i < last; i++) {
+        const L = layout[i];
+        const t = (y - L.tearStart) / L.tear;
+        if (t <= 0.02 || t >= 0.98) continue;
+
+        /*
+          The threshold is measured along the direction of travel, not from the
+          top of the tear. A flat "past 40% goes forward" rule reads correctly
+          going down but traps you going up: leaving a scene means scrolling
+          back through 60% of the tear in a single gesture, and anything less
+          is pulled forward again, which feels like the page refusing to let
+          you back. Mirroring it means either direction commits once you have
+          pulled the page 40% of the way there.
+        */
+        const commitForward = goingDown ? t >= SNAP_AT : t > 1 - SNAP_AT;
+        const target = commitForward ? L.end : L.tearStart;
+        if (Math.abs(target - y) < 1 || target > maxY + 1) return;
+
+        snapping = true;
+        window.scrollTo({ top: target, behavior: 'smooth' });
+        // Released once the smooth scroll has had time to land. A plain timeout
+        // rather than scrollend, which Safari does not fire.
+        window.setTimeout(() => {
+          snapping = false;
+        }, 700);
+        return;
+      }
     };
+
+    const onScroll = () => {
+      const y = window.scrollY;
+      // A snap in progress is our own scrolling, not the reader's; letting it
+      // set the direction would make the snap decide its own threshold.
+      if (!snapping && y !== lastY) goingDown = y > lastY;
+      lastY = y;
+
+      if (!raf) raf = requestAnimationFrame(apply);
+      if (settleTimer) clearTimeout(settleTimer);
+      settleTimer = window.setTimeout(settle, SETTLE_MS);
+    };
+
+    // A deliberate jump from the dot nav or a button is already a committed
+    // destination; it must not be second-guessed by the settle that follows it.
+    const onProgrammatic = () => {
+      snapping = true;
+      window.setTimeout(() => {
+        snapping = false;
+      }, 900);
+    };
+    window.addEventListener('rerun:scene-jump', onProgrammatic);
 
     window.addEventListener('scroll', onScroll, { passive: true });
     apply();
     return () => {
       window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('rerun:scene-jump', onProgrammatic);
+      if (settleTimer) clearTimeout(settleTimer);
       if (raf) cancelAnimationFrame(raf);
     };
   }, [layout, vh]);

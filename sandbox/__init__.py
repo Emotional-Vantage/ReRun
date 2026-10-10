@@ -1,5 +1,6 @@
-from .limits import get_limits, probe_gpu, SandboxLimits
+from .limits import get_limits, SandboxLimits
 from .manager import (
+    probe_gpu,
     RunResult,
     run_container,
     build_container_spec,

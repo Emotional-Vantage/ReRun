@@ -50,18 +50,31 @@ _OVERRIDE_SANDBOX = None
 
 
 def get_sandbox():
-    """Returns the active sandbox: DockerSandbox by default, or FakeSandbox if SANDBOX_TYPE=fake."""
+    """
+    Returns the active sandbox: DockerSandbox by default, or FakeSandbox if
+    SANDBOX_TYPE=fake and ALLOW_FAKE_SANDBOX=1.
+
+    The choice is delegated to sandbox.fake.get_sandbox rather than repeated here.
+    This used to be a second, independent copy of that logic, and the two copies had
+    drifted: this one honoured SANDBOX_TYPE=fake without also requiring
+    ALLOW_FAKE_SANDBOX=1. Since every orchestrator call site resolves its sandbox
+    through this function, the guard that tests/agent/test_default_sandbox_is_real.py
+    asserts was absent from the one path that actually runs a reproduction, so a stray
+    SANDBOX_TYPE=fake could have produced fabricated run output outside the API (which
+    has its own guard in backend/app/main.py:startup_event).
+
+    A selected FakeSandbox is cached, because callers register canned responses on the
+    instance and the orchestrator must then see that same object.
+    """
     global _OVERRIDE_SANDBOX
     if _OVERRIDE_SANDBOX is not None:
         return _OVERRIDE_SANDBOX
 
-    sandbox_type = os.getenv("SANDBOX_TYPE", "docker")
-    if sandbox_type == "fake":
-        from sandbox.fake import FakeSandbox
-        _OVERRIDE_SANDBOX = FakeSandbox()
-        return _OVERRIDE_SANDBOX
-    from sandbox.docker_sandbox import DockerSandbox
-    return DockerSandbox()
+    from sandbox.fake import get_sandbox as select_sandbox
+    sb = select_sandbox()
+    if isinstance(sb, FakeSandbox):
+        _OVERRIDE_SANDBOX = sb
+    return sb
 
 
 def set_sandbox(sb):

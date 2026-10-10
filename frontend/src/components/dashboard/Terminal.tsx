@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Terminal as TerminalIcon, Download, Pause, Play } from 'lucide-react';
+import { ScrollText, Download, Pause, Play } from 'lucide-react';
 import { fetchRunLog } from '../../api/client';
 
 interface TerminalProps {
@@ -70,23 +70,37 @@ export const Terminal: React.FC<TerminalProps> = ({
 
   const runsList = Array.from({ length: Math.max(1, totalAttempts) }, (_, i) => i + 1);
 
+  const lines = logContent ? logContent.split('\n') : [];
+
+  /*
+    This panel used to be a black terminal with teal and slate accents, dropped
+    into the middle of a page made of paper and ink. It was the one surface that
+    looked borrowed from another product. Nothing about a container log requires
+    a dark chrome -- it is a printed record of what the machine did, so it is
+    now set as one: a run sheet on paper, ruled, with the line numbers in the
+    margin. The content, the colouring of error lines and every control are
+    unchanged; only the surface is.
+  */
   return (
-    <div className="flex flex-col h-full min-h-0 bg-[#0B1120] border border-[#CDC5B4] rounded-xl overflow-hidden shadow-sm font-mono text-xs">
+    <div className="flex flex-col h-full min-h-0 bg-paper border border-kraft rounded-sm overflow-hidden shadow-sm font-mono text-xs">
       {/* Header */}
-      <div className="shrink-0 flex items-center justify-between px-4 py-2.5 bg-[#141C2B] border-b border-[#2A3853]">
+      <div className="shrink-0 flex items-center justify-between px-4 py-2.5 bg-kraft-light border-b border-kraft">
         <div className="flex items-center gap-2">
-          <TerminalIcon className="w-4 h-4 text-teal-400" />
-          <span className="font-semibold text-[#F1ECE0] uppercase tracking-wider text-[11px]">
-            Sandbox Container Console
+          <ScrollText className="w-4 h-4 text-rust" />
+          <span className="font-bold text-ink uppercase tracking-[0.14em] text-[11px]">
+            Run Log
           </span>
-          <span className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#1E293B] border border-[#334155] text-amber-300 font-mono text-[11px]" title="Live session elapsed time">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
-            <span>⏱️ {formatElapsed(elapsedSeconds)}</span>
+          <span
+            className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-paper border border-kraft text-ink-soft text-[11px]"
+            title="Live session elapsed time"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-ok animate-pulse inline-block" />
+            <span>{formatElapsed(elapsedSeconds)}</span>
           </span>
           <select
             value={selectedRun}
             onChange={(e) => setSelectedRun(Number(e.target.value))}
-            className="ml-2 bg-[#1E293B] text-[#F1ECE0] border border-[#334155] rounded px-2 py-0.5 text-xs focus:outline-none focus:border-teal-400"
+            className="ml-2 bg-paper text-ink border border-kraft rounded-sm px-2 py-0.5 text-xs focus:outline-none focus:border-rust"
           >
             {runsList.map((r) => (
               <option key={r} value={r}>
@@ -100,21 +114,21 @@ export const Terminal: React.FC<TerminalProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={() => setAutoScroll(!autoScroll)}
-            className={`flex items-center gap-1 px-2 py-0.5 rounded border text-[11px] transition-colors ${
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-sm border text-[11px] transition-colors ${
               autoScroll
-                ? 'bg-[#1E293B] text-teal-300 border-teal-500/40 font-medium'
-                : 'bg-[#1E293B] text-[#94A3B8] border-[#334155]'
+                ? 'bg-paper text-rust-ink border-rust/50 font-semibold'
+                : 'bg-paper text-ink-soft border-kraft'
             }`}
             title={autoScroll ? 'Pause autoscroll' : 'Resume autoscroll'}
           >
             {autoScroll ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-            <span className="hidden sm:inline">{autoScroll ? 'Auto-scroll on' : 'Paused'}</span>
+            <span className="hidden sm:inline">{autoScroll ? 'Following' : 'Paused'}</span>
           </button>
 
           <button
             onClick={handleDownloadLog}
             disabled={!logContent}
-            className="flex items-center gap-1 px-2 py-0.5 rounded bg-[#1E293B] hover:bg-[#334155] text-[#F1ECE0] border border-[#334155] text-[11px] disabled:opacity-40 transition-colors"
+            className="flex items-center gap-1 px-2 py-0.5 rounded-sm bg-paper hover:bg-kraft text-ink border border-kraft text-[11px] disabled:opacity-40 transition-colors"
             title="Download log file"
           >
             <Download className="w-3 h-3" />
@@ -123,31 +137,46 @@ export const Terminal: React.FC<TerminalProps> = ({
         </div>
       </div>
 
-      {/* Terminal Output */}
-      <div className="flex-1 min-h-0 p-4 overflow-y-auto bg-[#060B14] text-[#CBD5E1] space-y-0.5 leading-relaxed selection:bg-teal-500/30">
+      {/* Log sheet */}
+      <div className="flex-1 min-h-0 overflow-y-auto bg-paper selection:bg-rust/20">
         {!logContent ? (
-          <div className="h-full flex flex-col items-center justify-center text-center text-[#64748B]">
-            <TerminalIcon className="w-8 h-8 mb-2 opacity-30 text-teal-400" />
-            <p>No run has started yet. Live output will stream here.</p>
+          <div className="h-full flex flex-col items-center justify-center text-center text-ink-soft px-6">
+            <ScrollText className="w-8 h-8 mb-2 opacity-25 text-rust" />
+            <p>Nothing has run yet. Output from the container will be written here.</p>
           </div>
         ) : (
-          logContent.split('\n').map((line, idx) => {
-            const isError =
-              line.toLowerCase().includes('error') ||
-              line.toLowerCase().includes('exception') ||
-              line.toLowerCase().includes('traceback');
+          <div className="py-2">
+            {lines.map((line, idx) => {
+              const isError =
+                line.toLowerCase().includes('error') ||
+                line.toLowerCase().includes('exception') ||
+                line.toLowerCase().includes('traceback');
 
-            return (
-              <div
-                key={idx}
-                className={`whitespace-pre-wrap break-all ${
-                  isError ? 'text-red-400 bg-red-950/20 px-1 rounded' : 'text-slate-300'
-                }`}
-              >
-                {line}
-              </div>
-            );
-          })
+              return (
+                <div
+                  key={idx}
+                  className={`flex items-start gap-3 px-3 leading-relaxed ${
+                    isError ? 'bg-[#F6E2DC]' : ''
+                  }`}
+                >
+                  {/* Ruled margin, as on a numbered printout. */}
+                  <span
+                    className="shrink-0 w-9 text-right tabular-nums text-[10px] pt-[1px] text-ink-soft/45 select-none border-r border-kraft/60 pr-2"
+                    aria-hidden="true"
+                  >
+                    {idx + 1}
+                  </span>
+                  <span
+                    className={`whitespace-pre-wrap break-all ${
+                      isError ? 'text-rust-ink font-semibold' : 'text-ink'
+                    }`}
+                  >
+                    {line}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         )}
         <div ref={terminalEndRef} />
       </div>
