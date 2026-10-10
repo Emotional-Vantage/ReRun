@@ -1,0 +1,11 @@
+FROM python:3.11-slim
+
+RUN useradd -m -d /tmp -u 1000 runner && \
+    mkdir -p /workspace /wheelhouse && \
+    chown -R runner:runner /workspace /wheelhouse
+
+COPY requirements.base.txt /tmp/requirements.base.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.base.txt
+
+USER runner
+WORKDIR /workspace

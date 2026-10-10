@@ -1,0 +1,9 @@
+torch==2.5.1+cpu
+numpy==1.26.4
+PyYAML==6.0.1
+autograd
+imageio
+scipy
+scikit-learn
+pandas
+matplotlib

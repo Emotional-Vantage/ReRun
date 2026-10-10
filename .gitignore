@@ -2,6 +2,7 @@
 .venv/
 data/
 data/.pytest-runs/
+wheelhouse/
 wheelhouse/*.whl
 node_modules/
 dist/
