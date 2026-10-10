@@ -1,0 +1,54 @@
+{
+  "cases": [
+    {
+      "id": "b1_control",
+      "title": "Control Case",
+      "description": "Correct paper implementation",
+      "repo_path": "benchmarks/cases/b1_control",
+      "case_path": "benchmarks/cases/b1_control",
+      "command": "python train.py --config configs/default.yaml",
+      "paper_path": "benchmarks/papers/digits_softmax.pdf",
+      "gold_path": "benchmarks/gold/b1_control.json"
+    },
+    {
+      "id": "b2_dependency",
+      "title": "Missing Dependency",
+      "description": "Omitted PyYAML",
+      "repo_path": "benchmarks/cases/b2_dependency",
+      "case_path": "benchmarks/cases/b2_dependency",
+      "command": "python train.py --config configs/default.yaml",
+      "paper_path": "benchmarks/papers/digits_softmax.pdf",
+      "gold_path": "benchmarks/gold/b2_dependency.json"
+    },
+    {
+      "id": "b3_silent_config",
+      "title": "Silent Config Error",
+      "description": "Bad learning rate",
+      "repo_path": "benchmarks/cases/b3_silent_config",
+      "case_path": "benchmarks/cases/b3_silent_config",
+      "command": "python train.py --config configs/default.yaml",
+      "paper_path": "benchmarks/papers/digits_softmax.pdf",
+      "gold_path": "benchmarks/gold/b3_silent_config.json"
+    },
+    {
+      "id": "b4_combined",
+      "title": "Combined Error",
+      "description": "Missing dependency and bad learning rate",
+      "repo_path": "benchmarks/cases/b4_combined",
+      "case_path": "benchmarks/cases/b4_combined",
+      "command": "python train.py --config configs/default.yaml",
+      "paper_path": "benchmarks/papers/digits_softmax.pdf",
+      "gold_path": "benchmarks/gold/b4_combined.json"
+    },
+    {
+      "id": "b5_unable",
+      "title": "GPU Required",
+      "description": "Code explicitly requires cuda",
+      "repo_path": "benchmarks/cases/b5_unable",
+      "case_path": "benchmarks/cases/b5_unable",
+      "command": "python train.py --config configs/default.yaml",
+      "paper_path": "benchmarks/papers/digits_softmax.pdf",
+      "gold_path": "benchmarks/gold/b5_unable.json"
+    }
+  ]
+}

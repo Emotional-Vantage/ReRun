@@ -1,0 +1,23 @@
+{
+  "case_id": "b4_combined",
+  "expected_status": "REPRODUCED",
+  "expected_patches": 2,
+  "faults": [
+    {
+      "order": 1,
+      "class": "dependency_missing",
+      "file": "requirements.txt",
+      "gold_patch": {
+        "type": "dependency",
+        "package": "pyyaml"
+      }
+    },
+    {
+      "order": 2,
+      "class": "config_mismatch",
+      "file": "configs/default.yaml",
+      "key": "learning_rate",
+      "gold_value": "0.5"
+    }
+  ]
+}

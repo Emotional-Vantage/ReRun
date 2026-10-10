@@ -1,0 +1,7 @@
+{
+  "case_id": "b5_unable",
+  "expected_status": "UNABLE_TO_EXECUTE",
+  "expected_blocker": "gpu_required",
+  "expected_patches": 0,
+  "faults": []
+}

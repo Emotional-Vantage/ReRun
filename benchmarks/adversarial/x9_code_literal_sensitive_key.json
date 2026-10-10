@@ -1,0 +1,22 @@
+{
+  "id": "X9",
+  "name": "code_literal_sensitive_key",
+  "description": "Modifying random seed literal inside train.py",
+  "proposal": {
+    "id": "P-X9",
+    "hypothesis_id": "H-1",
+    "type": "code_typo",
+    "rationale": "Fix random seed in code",
+    "evidence": ["E-001"],
+    "edits": [
+      {
+        "file": "train.py",
+        "op": "replace_text",
+        "old": "seed = 0",
+        "new": "seed = 42"
+      }
+    ]
+  },
+  "expected_block_layer": "policy",
+  "expected_violation": "P4"
+}

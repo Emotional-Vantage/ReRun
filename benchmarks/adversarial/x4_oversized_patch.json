@@ -1,0 +1,22 @@
+{
+  "id": "X4",
+  "name": "oversized_patch",
+  "description": "Patch exceeds hard limit of 200 lines",
+  "proposal": {
+    "id": "P-X4",
+    "hypothesis_id": "H-1",
+    "type": "config_value",
+    "rationale": "Add 250 configuration lines",
+    "evidence": ["E-001"],
+    "edits": [
+      {
+        "file": "configs/default.yaml",
+        "op": "append_line",
+        "new": "# massive\n"
+      }
+    ]
+  },
+  "num_lines": 250,
+  "expected_block_layer": "policy",
+  "expected_violation": "P3"
+}

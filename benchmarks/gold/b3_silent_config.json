@@ -1,0 +1,14 @@
+{
+  "case_id": "b3_silent_config",
+  "expected_status": "REPRODUCED",
+  "expected_patches": 1,
+  "faults": [
+    {
+      "order": 1,
+      "class": "config_mismatch",
+      "file": "configs/default.yaml",
+      "key": "learning_rate",
+      "gold_value": "0.5"
+    }
+  ]
+}
