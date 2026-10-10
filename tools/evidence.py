@@ -139,8 +139,6 @@ def load_evidence_artifact(project_id, eid, data_dir=None):
                 return None
         return None
 
-    if ledger_valid:
-        return None
 
     # Fallback to unambiguous single match in evidence directory
     snapshot_dir = p_run_dir / "evidence"

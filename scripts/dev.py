@@ -136,6 +136,55 @@ def cleanup() -> None:
     print("Cleanup complete.")
 
 
+def demo_check() -> None:
+    print("Running Stage 6 pre-demo verification...")
+    checks = []
+    
+    # 1. Docker reachable
+    try:
+        res = subprocess.run(["docker", "info"], capture_output=True, text=True)
+        checks.append(("Docker reachable", res.returncode == 0))
+    except Exception:
+        checks.append(("Docker reachable", False))
+        
+    # 2. Base image present
+    try:
+        res = subprocess.run(["docker", "image", "inspect", "rerun-base:py311"], capture_output=True, text=True)
+        checks.append(("Base image present (rerun-base:py311)", res.returncode == 0))
+    except Exception:
+        checks.append(("Base image present (rerun-base:py311)", False))
+
+    # 3. Wheelhouse non-empty
+    wh_dir = Path("wheelhouse")
+    wh_ok = wh_dir.exists() and len(list(wh_dir.glob("*.whl"))) > 0
+    checks.append(("Wheelhouse non-empty", wh_ok))
+
+    # 4. Benchmark assets present
+    b1_data = Path("benchmarks/cases/b1_control/data/digits.csv").exists()
+    checks.append(("Benchmark assets present", b1_data))
+
+    # 5. B1 end-to-end on FakeLLM
+    try:
+        from scripts.run_case import run_case_headless
+        st = run_case_headless("b1_control", auto_approve=True, use_fake_llm=True)
+        b1_ok = (st.final.get("status") == "REPRODUCED") if st.final else False
+        checks.append(("B1 end-to-end (REPRODUCED)", b1_ok))
+    except Exception as e:
+        print(f"B1 failed: {e}")
+        checks.append(("B1 end-to-end (REPRODUCED)", False))
+
+    print("\n================ demo-check results ================")
+    all_pass = True
+    for name, ok in checks:
+        status_str = "PASS" if ok else "FAIL"
+        print(f"| {name:<40} | {status_str:<6} |")
+        if not ok:
+            all_pass = False
+    print("====================================================")
+    if not all_pass:
+        sys.exit(1)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="ReRun Developer CLI")
     subparsers = parser.add_subparsers(dest="command")
@@ -204,14 +253,20 @@ def main() -> None:
         run_cmd(f"{sys.executable} scripts/make_papers.py")
         print("Benchmarks built successfully!")
     elif args.command == "bench":
-        systems_arg = f"--systems {args.systems}" if args.systems else ""
-        run_cmd(f"{sys.executable} benchmarks/run_bench.py {systems_arg}")
+        if args.case:
+            systems_arg = f"--systems {args.systems}" if args.systems else "--systems Rerun"
+            run_cmd(f"{sys.executable} benchmarks/run_bench.py --case {args.case} {systems_arg}")
+        else:
+            systems_arg = f"--systems {args.systems}" if args.systems else ""
+            run_cmd(f"{sys.executable} benchmarks/run_bench.py {systems_arg}")
     elif args.command == "run":
         if not args.case:
             print("Error: --case is required for run")
             sys.exit(1)
         from scripts.run_case import run_case_headless
         run_case_headless(args.case)
+    elif args.command == "demo-check":
+        demo_check()
     elif args.command == "selftest":
         run_cmd(f"{sys.executable} -m pytest tests/security/test_selftest.py -v")
     elif args.command == "record":
@@ -221,7 +276,6 @@ def main() -> None:
         stage_map = {
             "calibrate": 3,
             "bench-real": 3,
-            "demo-check": 6,
             "api": 7,
             "ui": 8,
             "adversarial": 9,

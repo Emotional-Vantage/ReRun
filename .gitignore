@@ -9,4 +9,5 @@ dist/
 __pycache__/
 *.pyc
 .pytest_cache/
+benchmarks/results/
 REBUILD_STATUS.md
