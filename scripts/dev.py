@@ -214,11 +214,13 @@ def main() -> None:
         run_case_headless(args.case)
     elif args.command == "selftest":
         run_cmd(f"{sys.executable} -m pytest tests/security/test_selftest.py -v")
+    elif args.command == "record":
+        print("Running tests with LLM_MODE=record to record cassettes...")
+        run_cmd(f"{sys.executable} -m pytest tests/agent -q")
     else:
         stage_map = {
             "calibrate": 3,
             "bench-real": 3,
-            "record": 5,
             "demo-check": 6,
             "api": 7,
             "ui": 8,

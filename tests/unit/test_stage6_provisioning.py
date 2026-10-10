@@ -94,6 +94,12 @@ def test_sdist_only_dependency_triggers_needs_build_without_code_execution(tmp_p
     assert not trap_marker.exists()
 
 def test_fixture_repo_data_science_stack_installs_and_runs_offline(tmp_path):
+    try:
+        import docker
+        docker.from_env().ping()
+    except Exception:
+        pytest.skip("Docker daemon not available")
+
     project_id = "proj_ds_fixture_offline"
     run_dir = paths.run_dir(project_id)
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -170,6 +176,12 @@ print("EXPERIMENT_COMPLETE")
     assert (ws / "outputs" / "plot.png").exists()
 
 def test_self_test_after_provisioning_confirms_run_container_offline(tmp_path):
+    try:
+        import docker
+        docker.from_env().ping()
+    except Exception:
+        pytest.skip("Docker daemon not available")
+
     project_id = "proj_selftest_offline"
     run_dir = paths.run_dir(project_id)
     run_dir.mkdir(parents=True, exist_ok=True)

@@ -118,7 +118,7 @@ def apply_patch(state: ProjectState, patch: PatchProposal, workspace: str, run_s
     for rel_path, new_text in new_texts.items():
         target = ws / rel_path
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(new_text, encoding="utf-8")
+        target.write_text(new_text, encoding="utf-8", newline="\n")
         
     # 3. Syntax smoke check
     for rel_path, new_text in new_texts.items():

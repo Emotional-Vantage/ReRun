@@ -136,9 +136,10 @@ def test_triage_never_executes_repo_code(tmp_path):
     repo = tmp_path / "hostile_repo"
     repo.mkdir()
     sentinel_file = tmp_path / "LEAK_SENTINEL_EXECUTED.txt"
+    sentinel_file_str = str(sentinel_file).replace("\\", "/")
     
     (repo / "__init__.py").write_text(
-        f"with open('{sentinel_file}', 'w') as f:\n"
+        f"with open('{sentinel_file_str}', 'w') as f:\n"
         f"    f.write('EXECUTED')\n"
     )
     (repo / "main.py").write_text(
