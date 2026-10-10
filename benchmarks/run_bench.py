@@ -176,7 +176,11 @@ def main():
                     print(f"Result: {status} (matches gold: {matches_gold})")
                 
     if results:
-        keys = results[0].keys()
+        keys = []
+        for r in results:
+            for k in r.keys():
+                if k not in keys:
+                    keys.append(k)
         with open(f"{out_dir}/results.csv", "w", newline='') as f:
             writer = csv.DictWriter(f, fieldnames=keys)
             writer.writeheader()

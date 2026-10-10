@@ -283,14 +283,14 @@ def main() -> None:
         )
     elif args.command == "ui":
         run_cmd("npm run dev --prefix frontend")
+    elif args.command == "adversarial":
+        run_cmd(f"{sys.executable} scripts/run_adversarial.py")
+    elif args.command == "calibrate":
+        run_cmd(f"{sys.executable} scripts/calibrate_benchmark.py")
+    elif args.command == "prune":
+        run_cmd(f"{sys.executable} scripts/prune_runs.py")
     else:
-        stage_map = {
-            "calibrate": 3,
-            "bench-real": 3,
-            "adversarial": 9,
-        }
-        target_stage = stage_map.get(args.command, "N")
-        print(f"not implemented until Stage {target_stage}")
+        print(f"Command '{args.command}' is not yet implemented fully.")
         sys.exit(1)
 
 

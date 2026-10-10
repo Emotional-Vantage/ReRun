@@ -1,0 +1,59 @@
+name: Rerun CI
+
+on:
+  push:
+    branches: [ "main", "completion/*" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  backend-test:
+    name: Backend Test Suite (Non-Docker)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Copy sample environment configuration
+        run: cp .env.example .env
+
+      - name: Run Non-Docker Unit, Agent, E2E, and Security Tests
+        env:
+          SANDBOX_TYPE: fake
+          ALLOW_FAKE_SANDBOX: "1"
+          LLM_MODE: replay
+        run: |
+          pytest tests/unit tests/agent tests/security tests/e2e tests/integration -v
+
+  frontend-build:
+    name: Frontend TypeScript & Vite Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package.json
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build Frontend Application
+        working-directory: ./frontend
+        run: npm run build
