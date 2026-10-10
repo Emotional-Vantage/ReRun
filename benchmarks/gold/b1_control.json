@@ -1,0 +1,6 @@
+{
+  "case_id": "b1_control",
+  "expected_status": "REPRODUCED",
+  "expected_patches": 0,
+  "faults": []
+}

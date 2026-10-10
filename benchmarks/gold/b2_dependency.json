@@ -1,0 +1,16 @@
+{
+  "case_id": "b2_dependency",
+  "expected_status": "REPRODUCED",
+  "expected_patches": 1,
+  "faults": [
+    {
+      "order": 1,
+      "class": "dependency_missing",
+      "file": "requirements.txt",
+      "gold_patch": {
+        "type": "dependency",
+        "package": "pyyaml"
+      }
+    }
+  ]
+}

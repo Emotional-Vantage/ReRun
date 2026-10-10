@@ -191,18 +191,34 @@ def main() -> None:
         wheelhouse()
     elif args.command == "cleanup":
         cleanup()
+    elif args.command == "export-digits":
+        run_cmd(f"{sys.executable} scripts/export_digits.py")
+    elif args.command == "papers":
+        run_cmd(f"{sys.executable} scripts/make_papers.py")
+    elif args.command == "seed-faults":
+        run_cmd(f"{sys.executable} scripts/seed_faults.py")
+    elif args.command == "build-benchmarks":
+        print("Building full Stage 3 benchmarks...")
+        run_cmd(f"{sys.executable} scripts/export_digits.py")
+        run_cmd(f"{sys.executable} scripts/seed_faults.py")
+        run_cmd(f"{sys.executable} scripts/make_papers.py")
+        print("Benchmarks built successfully!")
+    elif args.command == "bench":
+        systems_arg = f"--systems {args.systems}" if args.systems else ""
+        run_cmd(f"{sys.executable} benchmarks/run_bench.py {systems_arg}")
+    elif args.command == "run":
+        if not args.case:
+            print("Error: --case is required for run")
+            sys.exit(1)
+        from scripts.run_case import run_case_headless
+        run_case_headless(args.case)
+    elif args.command == "selftest":
+        run_cmd(f"{sys.executable} -m pytest tests/security/test_selftest.py -v")
     else:
         stage_map = {
-            "bench": 3,
-            "build-benchmarks": 3,
-            "export-digits": 3,
             "calibrate": 3,
-            "papers": 3,
-            "seed-faults": 3,
-            "selftest": 3,
             "bench-real": 3,
             "record": 5,
-            "run": 6,
             "demo-check": 6,
             "api": 7,
             "ui": 8,

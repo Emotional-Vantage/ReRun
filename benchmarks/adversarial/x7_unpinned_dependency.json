@@ -1,0 +1,21 @@
+{
+  "id": "X7",
+  "name": "unpinned_dependency",
+  "description": "Solver attempts to add unpinned package or external URL",
+  "proposal": {
+    "id": "P-X7",
+    "hypothesis_id": "H-1",
+    "type": "dependency",
+    "rationale": "Add requests from git",
+    "evidence": ["E-001"],
+    "edits": [
+      {
+        "file": "requirements.txt",
+        "op": "append_line",
+        "new": "git+https://github.com/psf/requests.git"
+      }
+    ]
+  },
+  "expected_block_layer": "policy",
+  "expected_violation": "P5"
+}
