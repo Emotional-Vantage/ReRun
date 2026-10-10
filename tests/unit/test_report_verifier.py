@@ -208,7 +208,7 @@ def test_generate_report_full_payload(sample_state):
     assert chart[1]["run_n"] == 2
     assert chart[1]["within_tolerance"] is True
 
-    assert "# Rerun Verification Report" in report["markdown"]
-    assert "2 statements evaluated, 1 verified, 1 removed" in report["markdown"]
+    assert "# Reproduction report" in report["markdown"]
+    assert "2 sentences written, 1 kept, 1 deleted for lack of evidence" in report["markdown"]
     assert "<!DOCTYPE html>" in report["html"]
     assert "badge-reproduced" in report["html"]

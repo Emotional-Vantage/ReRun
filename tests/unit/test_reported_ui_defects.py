@@ -149,8 +149,11 @@ def test_report_for_a_crashed_run_claims_no_reproduction():
     # The exported markdown must not present the crash as a pass.
     md = report["markdown"]
     assert "Not measured" in md
-    assert "N/A (crashed)" in md
-    assert "REPRODUCED`" not in md.split("**Final Verdict:**")[1].split("\n")[0]
+    assert "nothing (run produced no number)" in md
+    # The verdict line and the opening sentence must both refuse to claim a pass.
+    assert "- **Result:** `UNABLE_TO_EXECUTE`" in md
+    assert "could not get this paper's code to run to completion" in md
+    assert "got the result the paper reports" not in md
 
 
 def test_successful_run_still_reports_within_tolerance():

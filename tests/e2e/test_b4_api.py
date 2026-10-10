@@ -130,4 +130,4 @@ def test_b4_api_e2e(monkeypatch):
 
         resp_html = client.get(f"/api/projects/{project_id}/report.html")
         assert resp_html.status_code == 200
-        assert "Rerun Verification Report" in resp_html.text
+        assert "Reproduction report" in resp_html.text

@@ -37,7 +37,7 @@ export const AttemptsTable: React.FC<AttemptsTableProps> = ({ attempts, claims =
   return (
     <div className="bg-[#FAF7F0] border border-[#CDC5B4] rounded-xl overflow-hidden shadow-sm font-mono text-xs text-[#1F2A44]">
       <div className="px-4 py-2.5 bg-[#F4F1E8] border-b border-[#CDC5B4] font-semibold text-[#1F2A44] uppercase tracking-wider text-[11px] flex items-center justify-between">
-        <span>Execution Runs & Metric Verification</span>
+        <span>Runs and what each one measured</span>
         <span className="text-[#4A5470] font-normal">{attempts.length} run{attempts.length > 1 ? 's' : ''} recorded</span>
       </div>
 
@@ -45,13 +45,13 @@ export const AttemptsTable: React.FC<AttemptsTableProps> = ({ attempts, claims =
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-[#CDC5B4] text-[#4A5470] text-[11px] bg-[#FAF7F0]">
-              <th className="py-2.5 px-4">Run #</th>
-              <th className="py-2.5 px-4">Exit Code</th>
-              <th className="py-2.5 px-4">Error / Diagnosis</th>
-              <th className="py-2.5 px-4">Duration</th>
-              <th className="py-2.5 px-4">Patches</th>
-              <th className="py-2.5 px-4">Observed Metric</th>
-              <th className="py-2.5 px-4">Tolerance Check</th>
+              <th className="py-2.5 px-4">Run</th>
+              <th className="py-2.5 px-4">Finished cleanly?</th>
+              <th className="py-2.5 px-4">What went wrong</th>
+              <th className="py-2.5 px-4">Took</th>
+              <th className="py-2.5 px-4">Changes used</th>
+              <th className="py-2.5 px-4">We measured</th>
+              <th className="py-2.5 px-4">Result</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#CDC5B4]/50">
@@ -67,11 +67,14 @@ export const AttemptsTable: React.FC<AttemptsTableProps> = ({ attempts, claims =
                   <td className="py-2.5 px-4 font-bold text-[#1F2A44]">#{att.n}</td>
                   <td className="py-2.5 px-4">
                     <span
+                      title={`exit code ${att.exit_code}`}
                       className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                         isCrash ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                       }`}
                     >
-                      {att.exit_code}
+                      {/* The column asks a yes/no question, so answer it. The raw code is
+                          kept in the title for anyone who wants it. */}
+                      {att.exit_code === 0 ? 'yes' : 'no'}
                     </span>
                   </td>
                   <td className="py-2.5 px-4">
@@ -89,9 +92,9 @@ export const AttemptsTable: React.FC<AttemptsTableProps> = ({ attempts, claims =
                       {att.error_class ? (
                         <span className="text-amber-800 font-semibold">{att.error_class}</span>
                       ) : att.timed_out || att.oom ? null : isCrash ? (
-                        <span className="text-red-700 font-medium">Runtime Crash</span>
+                        <span className="text-red-700 font-medium">It stopped with an error</span>
                       ) : (
-                        <span className="text-[#4A5470]">Exit 0 (Completed)</span>
+                        <span className="text-[#4A5470]">Nothing — it ran fine</span>
                       )}
                     </div>
                   </td>
@@ -126,15 +129,15 @@ export const AttemptsTable: React.FC<AttemptsTableProps> = ({ attempts, claims =
                   <td className="py-2.5 px-4">
                     {withinTol === true ? (
                       <span className="inline-flex items-center gap-1.5 text-emerald-700 font-bold">
-                        <CheckCircle2 className="w-4 h-4" /> Within Tol
+                        <CheckCircle2 className="w-4 h-4" /> Matched
                       </span>
                     ) : withinTol === false ? (
                       <span className="inline-flex items-center gap-1.5 text-red-700 font-bold">
-                        <XCircle className="w-4 h-4" /> Outside Tol
+                        <XCircle className="w-4 h-4" /> Did not match
                       </span>
                     ) : isCrash ? (
                       <span className="inline-flex items-center gap-1.5 text-[#4A5470]">
-                        <AlertCircle className="w-4 h-4" /> Crashed
+                        <AlertCircle className="w-4 h-4" /> No number
                       </span>
                     ) : (
                       <span className="text-[#CDC5B4]">—</span>

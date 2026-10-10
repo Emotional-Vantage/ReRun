@@ -45,8 +45,8 @@ export const EvidenceLedger: React.FC<EvidenceLedgerProps> = ({
         <div className="p-2.5 rounded bg-amber-50 border border-amber-300 text-amber-900 text-[11px] flex items-start gap-2">
           <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
           <span>
-            {missing.length} entr{missing.length === 1 ? 'y was' : 'ies were'} recorded by the
-            agent but can no longer be served — the artifact or its ledger entry is gone.
+            {missing.length} entr{missing.length === 1 ? 'y was' : 'ies were'} recorded during the
+            run but cannot be opened any more — the saved file or its record is gone.
           </span>
         </div>
       )}
@@ -58,9 +58,9 @@ export const EvidenceLedger: React.FC<EvidenceLedgerProps> = ({
               <tr className="border-b border-[#CDC5B4] text-[#4A5470] text-[11px] uppercase tracking-wider">
                 <th className="py-2 px-2">ID</th>
                 <th className="py-2 px-2">Type</th>
-                <th className="py-2 px-2">Captured by</th>
-                <th className="py-2 px-2">Excerpt</th>
-                <th className="py-2 px-2">SHA-256</th>
+                <th className="py-2 px-2">Recorded by</th>
+                <th className="py-2 px-2">What it says</th>
+                <th className="py-2 px-2">Fingerprint</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#CDC5B4]/50">
@@ -103,7 +103,7 @@ export const EvidenceLedger: React.FC<EvidenceLedgerProps> = ({
       <div className="px-4 py-2.5 bg-[#F4F1E8] border-b border-[#CDC5B4] font-semibold uppercase tracking-wider text-[11px] flex items-center justify-between">
         <span className="flex items-center gap-2">
           <FileSearch className="w-3.5 h-3.5 text-rust" />
-          Evidence Ledger
+          Where the facts came from
         </span>
         <span className="text-[#4A5470] font-normal">
           {items === null ? 'loading…' : `${items.length} entr${items.length === 1 ? 'y' : 'ies'}`}

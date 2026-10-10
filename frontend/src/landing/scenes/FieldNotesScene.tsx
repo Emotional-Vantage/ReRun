@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { PineBranchSvg } from './art/PineBranchSvg';
 import { SquirrelSvg } from './art/SquirrelSvg';
+import { scrollToScene } from '../engine/SceneStage';
 
 interface StepItem {
   id: string;
@@ -17,62 +18,62 @@ interface StepItem {
 const STEPS: StepItem[] = [
   {
     id: '01',
-    stepNum: '01 / 05',
-    title: 'INGEST CLAIM & CODE',
-    subtitle: 'Extract target metric and environment specifications',
-    role: 'ORCHESTRATOR',
+    stepNum: 'Step 1 of 5',
+    title: 'READ THE PAPER',
+    subtitle: 'Find the number the paper claims',
+    role: 'RERUN',
     description:
-      'We parse the research paper, extract claimed quantitative outcomes (e.g. accuracy, perplexity, speedup), and pin the original git commit and dependencies.',
-    detail: 'Spec: 5 synthetic benchmark papers labelled with exact metric formulas.',
-    caption: 'Target metric: 0.9560 accuracy',
+      'We read the paper and pull out the exact result it claims \u2014 the accuracy, the error rate, whatever it reports. We also note the version of the code it used, so we test the same thing the authors did.',
+    detail: 'You see every claim we found, and you confirm or correct it before anything runs.',
+    caption: 'Paper claims: 0.9560 accuracy',
     imageTheme: 'linear-gradient(180deg, #4A5D80 0%, #D8A58D 60%, #E8C3A7 100%)',
   },
   {
     id: '02',
-    stepNum: '02 / 05',
-    title: 'ISOLATED DOCKER SANDBOX',
-    subtitle: 'Hermetic reproducibility without host side-effects',
-    role: 'SOLVER',
+    stepNum: 'Step 2 of 5',
+    title: 'RUN IT SAFELY',
+    subtitle: 'In a sealed box, with no internet',
+    role: 'SANDBOX',
     description:
-      'The code executes inside a restricted container with pinned python wheels and deterministic seeds. Network access is quarantined after dependency fetching.',
-    detail: 'Execution engine checks every system call and records container exit codes.',
-    caption: 'Container ID: rer-sandbox-b4',
+      'The paper\u2019s code runs inside a locked container on your machine. It cannot reach the internet, cannot touch your files, and gets a fixed slice of memory and CPU.',
+    detail: 'Research code is someone else\u2019s code. It never runs loose on your computer.',
+    caption: 'Running in a sealed container',
     imageTheme: 'linear-gradient(180deg, #2F4F93 0%, #4A5D80 60%, #8D7765 100%)',
   },
   {
     id: '03',
-    stepNum: '03 / 05',
-    title: 'EXECUTION TRACE & DIFF',
-    subtitle: 'Measure real numbers against the published tables',
-    role: 'TOOL',
+    stepNum: 'Step 3 of 5',
+    title: 'COMPARE THE NUMBERS',
+    subtitle: 'What the code produced vs what the paper says',
+    role: 'MEASURED',
     description:
-      'Rerun extracts stdout metrics, standard deviations, and resource usage. We construct a cryptographic trace of every intermediate computation.',
-    detail: 'No invented numbers: measured outcomes are checked within strict tolerances.',
-    caption: 'Measured: 0.7812 (claimed 0.9560)',
+      'We take the number the code actually produced and put it next to the number the paper claims. If the code crashed and produced nothing, we say so \u2014 we never fill the gap with a guess.',
+    detail: 'Every number shown here was measured. Nothing is estimated or filled in.',
+    caption: 'Measured 0.7812, paper says 0.9560',
     imageTheme: 'linear-gradient(180deg, #3E3B52 0%, #8D7765 60%, #B8572F 100%)',
   },
   {
     id: '04',
-    stepNum: '04 / 05',
-    title: 'CRITIC ROLE AUDIT',
-    subtitle: 'Adversarial evaluation of code integrity and hyperparams',
-    role: 'CRITIC',
+    stepNum: 'Step 4 of 5',
+    title: 'CHECK THE FIX IS HONEST',
+    subtitle: 'A second opinion before anything is applied',
+    role: 'REVIEWER',
     description:
-      'The Critic agent verifies whether the solver modified evaluation seeds, tampered with test sets, or silently suppressed runtime warnings.',
-    detail: 'Clear authority hierarchy: You > Rulebook > Critic > Solver.',
-    caption: 'Auditor check: No seed manipulation',
+      'When Rerun suggests a fix, a separate reviewer checks it for cheating: changing the test data, fiddling with the random seed, or hiding warnings. A fix has to point at a real error or a line in the paper.',
+    detail: 'You have the final say. Nothing is applied until you click approve.',
+    caption: 'Checked: no test data was touched',
     imageTheme: 'linear-gradient(180deg, #8A7A9A 0%, #D8CFC4 60%, #E9B2A0 100%)',
   },
   {
     id: '05',
-    stepNum: '05 / 05',
-    title: 'VERDICT STAMP & REPORT',
-    subtitle: 'Definitive reproducible proof bundle',
-    role: 'RULEBOOK',
+    stepNum: 'Step 5 of 5',
+    title: 'WRITE IT ALL DOWN',
+    subtitle: 'The result, and how we got there',
+    role: 'REPORT',
     description:
-      'A signed verification report is generated with verifiable reproduction hashes, artifact logs, and an unambiguous verdict: REPRODUCED, REPRODUCED WITH TOLERANCE, or REJECTED.',
-    detail: 'Exportable JSON audit trail + human-readable markdown notebook.',
-    caption: 'Final Verdict: REJECTED',
+      'You get a plain report: did it match or not, what was changed along the way, and a link from every statement back to the log line or file it came from.',
+    detail: 'If we could not check something, the report says so instead of staying quiet.',
+    caption: 'Result: matched the paper',
     imageTheme: 'linear-gradient(180deg, #14203B 0%, #34476F 60%, #E89650 100%)',
   },
 ];
@@ -106,7 +107,7 @@ export const FieldNotesScene: React.FC = () => {
       {/* Header Zone */}
       <div className="relative z-10 text-center max-w-3xl mt-1 md:mt-2">
         <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl lg:text-5xl uppercase tracking-[0.02em] text-cream">
-          How It Works — Field Notes
+          How Rerun Works
         </h2>
         <div className="font-mono text-[11px] md:text-xs uppercase tracking-[0.28em] text-cream/70 mt-1.5">
           {cur.stepNum}
@@ -201,16 +202,25 @@ export const FieldNotesScene: React.FC = () => {
 
             {/* Detail Spec */}
             <div className="mt-4 p-2.5 bg-[#EDE8DA] border border-kraft/70 text-[11px] font-mono text-ink">
-              <span className="font-bold text-rust-ink">Note: </span>
+              <span className="font-bold text-rust-ink">Good to know: </span>
               <span className="text-ink">{cur.detail}</span>
             </div>
           </div>
 
-          {/* Action Link */}
+          {/*
+            This was a styled <span> with `cursor-pointer hover:underline` and no handler:
+            it looked like a link, and clicking it did nothing. It is now a real button
+            that takes you to the recorded run, which is where a reader can actually see
+            this step carried out on a real paper.
+          */}
           <div className="mt-6 pt-3 border-t border-kraft/40 flex justify-between items-center text-xs font-mono">
-            <span className="text-rust-ink font-bold tracking-widest uppercase hover:underline cursor-pointer">
-              INSPECT STEP ARTIFACT →
-            </span>
+            <button
+              type="button"
+              onClick={() => scrollToScene('demo')}
+              className="text-rust-ink font-bold tracking-widest uppercase hover:underline focus:outline-none focus-visible:ring-1 focus-visible:ring-rust rounded-sm"
+            >
+              See this step in a real run →
+            </button>
             <span className="text-ink-soft text-[10px]">{cur.stepNum}</span>
           </div>
         </div>

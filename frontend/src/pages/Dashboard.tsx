@@ -94,7 +94,16 @@ export const Dashboard: React.FC = () => {
 
   useEffect(() => {
     loadState();
-    const interval = setInterval(loadState, 2000);
+    const interval = setInterval(() => {
+      setState((prev) => {
+        const terminalStatuses = ['DONE', 'REPRODUCED', 'NOT_REPRODUCED', 'UNABLE_TO_EXECUTE', 'ABORTED', 'INCONCLUSIVE'];
+        const isFinished = prev?.phase === 'DONE' || (prev?.status && terminalStatuses.includes(prev.status));
+        if (!isFinished) {
+          loadState();
+        }
+        return prev;
+      });
+    }, 2500);
     return () => clearInterval(interval);
   }, [loadState]);
 

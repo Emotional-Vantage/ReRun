@@ -284,10 +284,26 @@ def get_claims_draft(id: str):
         if cmd not in candidates:
             candidates.append(cmd)
 
+    if state.benchmark_id:
+        reg_path = "benchmarks/registry.json"
+        if os.path.exists(reg_path):
+            try:
+                with open(reg_path) as f:
+                    reg = json.load(f)
+                c_info = next((c for c in reg.get("cases", []) if c["id"] == state.benchmark_id), None)
+                if c_info and c_info.get("command") and c_info["command"] not in candidates:
+                    candidates.insert(0, c_info["command"])
+            except Exception:
+                pass
+
+    planned_cmd = state.user_command or (state.plan.command if state.plan else None)
+    if not planned_cmd and candidates:
+        planned_cmd = candidates[0]
+
     return {
         "claims": [c.model_dump() for c in state.claims],
         "paper_settings": [ps.model_dump() for ps in state.paper_settings],
-        "command": state.user_command or (state.plan.command if state.plan else None),
+        "command": planned_cmd,
         "command_candidates": candidates[:12],
         "extraction_issues": [
             issue for issue in state.unresolved_issues

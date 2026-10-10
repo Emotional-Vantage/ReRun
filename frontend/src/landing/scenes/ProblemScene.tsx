@@ -79,9 +79,17 @@ export const ProblemScene: React.FC = () => {
           }}
         >
           {/* ================= FRONT: IT CRASHES ================= */}
+          {/*
+            `pointerEvents` is driven off `flipped` as well as `backfaceVisibility`.
+            Hiding a face by its backface alone is not enough: a descendant that makes its
+            own stacking context (the taped polaroid below carries `z-20`) still gets
+            hit-tested while the face is turned away. Mirrored by the 180deg rotation, that
+            polaroid lands exactly over the back's "Turn over" button and swallowed the
+            click, so the card could be flipped once and never flipped back.
+          */}
           <div
             className="absolute inset-0 w-full h-full bg-paper border border-kraft rounded-sm p-5 sm:p-6 md:p-7 flex flex-col md:flex-row gap-5 md:gap-6 backface-hidden shadow-xl"
-            style={{ backfaceVisibility: 'hidden' }}
+            style={{ backfaceVisibility: 'hidden', pointerEvents: flipped ? 'none' : 'auto' }}
           >
             {/* Left Column: Framed Scenic Painting + Taped Polaroid */}
             <div className="relative w-full md:w-[44%] h-full flex flex-col justify-between">
@@ -219,6 +227,7 @@ export const ProblemScene: React.FC = () => {
             style={{
               backfaceVisibility: 'hidden',
               transform: 'rotateY(180deg)',
+              pointerEvents: flipped ? 'auto' : 'none',
             }}
           >
             <div>

@@ -176,16 +176,16 @@ def test_report_upgrades_metadata_and_simulated_banner():
     assert "pyyaml" in md_real
     assert "SIMULATED RUN" not in md_real
 
-    assert any("Hardware and non-determinism limitation" in lim for lim in rep_real["limitations"])
+    assert any("Small differences are normal" in lim for lim in rep_real["limitations"])
     assert any("Claim C-2" in nc for nc in rep_real["not_checked"])
-    assert "Unselected Claims (Not Checked)" in md_real
+    assert "Claims we did not check" in md_real
 
     state_sim = create_mock_completed_state("proj_rep_sim", simulated=True)
     rep_sim = generate_report(state_sim)
     md_sim = rep_sim["markdown"]
     html_sim = rep_sim["html"]
 
-    assert "⚠️ **SIMULATED RUN**" in md_sim
+    assert "**This was a practice run.**" in md_sim
     assert "SIMULATED RUN" in html_sim
     assert rep_sim["simulated"] is True
 

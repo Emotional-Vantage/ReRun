@@ -35,17 +35,17 @@ CUSTOM_REPO_CONSENT_TEXT = "This runs third-party code in a sandbox; Docker is n
 
 # Provider settings
 SOLVER_PROVIDER = os.getenv("SOLVER_PROVIDER", "gemini")
-SOLVER_MODEL = os.getenv("SOLVER_MODEL", "gemini-3.5-flash-lite")
+SOLVER_MODEL = os.getenv("SOLVER_MODEL", "gemini-2.0-flash")
 SOLVER_BASE_URL = os.getenv("SOLVER_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/gemini")
 SOLVER_API_KEY = os.getenv("SOLVER_API_KEY", "")
 
 CRITIC_PROVIDER = os.getenv("CRITIC_PROVIDER", "gemini")
-CRITIC_MODEL = os.getenv("CRITIC_MODEL", "gemini-3.5-flash-lite")
+CRITIC_MODEL = os.getenv("CRITIC_MODEL", "gemini-2.0-flash")
 CRITIC_BASE_URL = os.getenv("CRITIC_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/gemini")
 CRITIC_API_KEY = os.getenv("CRITIC_API_KEY", "")
 
 FALLBACK_PROVIDER = os.getenv("FALLBACK_PROVIDER", "gemini")
-FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "gemini-3.5-flash-lite")
+FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "gemini-2.0-flash")
 FALLBACK_BASE_URL = os.getenv("FALLBACK_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/gemini")
 FALLBACK_API_KEY = os.getenv("FALLBACK_API_KEY", "")
 

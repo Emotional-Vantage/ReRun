@@ -23,11 +23,12 @@ body { overflow-x: clip; }                       /* NOT overflow-x:hidden: that 
 
 .tear-svg { position: absolute; left: 0; width: 100%; height: 80px; pointer-events: none; }
 
-/* soft depth shadow next to the gap (cheap gradient, not box-shadow) */
-.scene-upper::after { content: ""; position: absolute; left: 0; right: 0; bottom: -84px; height: 44px; pointer-events: none;
-  background: linear-gradient(to bottom, rgba(15,23,42,.30), transparent); opacity: var(--te, 0); }
-.scene-lower::before { content: ""; position: absolute; left: 0; right: 0; top: -84px; height: 44px; pointer-events: none;
-  background: linear-gradient(to top, rgba(15,23,42,.30), transparent); opacity: var(--te, 0); }
+/* No depth gradient beside the gap.
+   There used to be a 44px linear-gradient on .scene-upper::after / .scene-lower::before.
+   Because a gradient box has straight edges and the tear does not, it read as a hard
+   horizontal band of shadow sitting under a ragged edge -- the one visibly machine-made
+   line in an otherwise torn-paper page. The depth now comes only from the shadow strip
+   inside TearEdge, which follows the tear contour. */
 
 /* grain overlay once per stage */
 .grain { position: absolute; inset: 0; pointer-events: none; z-index: 50; mix-blend-mode: multiply; opacity: .09; filter: url(#paper-grain); }

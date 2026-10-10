@@ -268,19 +268,25 @@ def generate_report(
     for s in verified_stmts:
         grouped_statements.setdefault(s.section, []).append(s.model_dump())
 
+    # Written for a reader who is not an ML engineer. These are shown verbatim in the
+    # report's "What we did not check" section, so jargon here becomes jargon on the page.
     mandatory_limitations = [
-        "Computational reproduction only; does not evaluate broader scientific validity or unstated domain assumptions.",
-        "Verified strictly within isolated, deterministic container environment with synthetic benchmark constraints.",
-        "Hardware and non-determinism limitation: Floating-point arithmetic, seed variation, and differences across CPU architectures and GPU driver versions may lead to minor metric variances within the reported tolerance window."
+        "We only checked whether this code produces this number. We did not judge whether "
+        "the paper's wider conclusions are correct.",
+        "Everything ran in one sealed container on one machine. A different machine could "
+        "give a slightly different number.",
+        "Small differences are normal. Decimal rounding, random starting points, and "
+        "different processors can all move the last few digits."
     ]
     unselected_claims = [c for c in state.claims if not c.selected and not c.primary]
     mandatory_not_checked = [
-        "Hyperparameter sensitivity beyond reported paper settings.",
-        "Performance on out-of-distribution datasets or alternate hardware configurations."
+        "Whether the result still holds with different settings than the ones the paper states.",
+        "Whether the result holds on other data, or on other kinds of hardware."
     ]
     for uc in unselected_claims:
         mandatory_not_checked.append(
-            f"Claim {uc.id} ({uc.metric} = {uc.reported}, {uc.source_ref}): Excluded from reproduction by human claim picker."
+            f"Claim {uc.id} ({uc.metric} = {uc.reported}, from {uc.source_ref}): you chose not "
+            f"to check this one, so this report says nothing about it."
         )
 
     total_count = len(stmts_to_process)
@@ -291,7 +297,7 @@ def generate_report(
         "total": total_count,
         "verified": verified_count,
         "removed": removed_count,
-        "summary_text": f"{total_count} statements evaluated, {verified_count} verified, {removed_count} removed"
+        "summary_text": f"{total_count} sentences written, {verified_count} kept, {removed_count} deleted for lack of evidence"
     }
 
     applied_patches = [
@@ -310,44 +316,81 @@ def generate_report(
     reason_str = state.final.get("reason", "") if state.final else ""
     after_n = len(applied_patches)
 
+    # One plain sentence per verdict, so the document opens with the answer rather than
+    # with metadata. Never softens a negative result.
+    verdict_sentence = {
+        "REPRODUCED":
+            "We ran this paper's code and got the result the paper reports.",
+        "PARTIALLY_REPRODUCED":
+            "We ran this paper's code. Some of the results matched the paper and some did not.",
+        "NOT_REPRODUCED":
+            "We ran this paper's code and it finished, but the result it produced does not "
+            "match what the paper reports.",
+        "UNABLE_TO_EXECUTE":
+            "We could not get this paper's code to run to completion, so there is no result "
+            "to compare against the paper.",
+        "INCONCLUSIVE":
+            "We could not reach a clear answer for this paper. Nothing below is evidence "
+            "either way.",
+    }.get(str(status_str), f"The run finished with the status {status_str}.")
+
     md_lines = [
-        f"# Rerun Verification Report: {state.benchmark_id or state.project_id}",
+        f"# Reproduction report: {state.benchmark_id or state.project_id}",
         ""
     ]
     if getattr(state, "simulated", False):
-        md_lines.append("> ⚠️ **SIMULATED RUN**: This reproduction was executed under simulation / fake sandbox mode, not a live container environment.")
+        md_lines.append("> ⚠️ **This was a practice run.** The code did not run in a real container, so these numbers do not prove anything about the paper.")
         md_lines.append("")
 
     md_lines.extend([
-        f"**Project ID:** `{state.project_id}`  ",
-        f"**Repository URL:** `{state.repo_url or state.benchmark_id or 'N/A'}`  ",
-        f"**Commit SHA:** `{state.repo_commit or 'HEAD'}`  ",
-        f"**Paper PDF:** `{state.paper_path or 'N/A'}`  ",
-        f"**Final Verdict:** `{status_str}` (after {after_n} approved patches)  ",
-        f"**Reason:** {reason_str}  ",
+        "## The short answer",
+        "",
+        verdict_sentence,
+        "",
+    ])
+    if reason_str:
+        md_lines.extend([reason_str, ""])
+
+    if after_n == 0:
+        md_lines.append("Nothing in the code was changed. It ran as the authors published it.")
+    else:
+        md_lines.append(
+            f"{after_n} change{'' if after_n == 1 else 's'} "
+            f"{'was' if after_n == 1 else 'were'} applied, each one approved by a person first."
+        )
+    md_lines.extend(["", "---", ""])
+
+    md_lines.extend([
+        "## Where this came from",
+        "",
+        f"- **Run id:** `{state.project_id}`",
+        f"- **Code:** `{state.repo_url or state.benchmark_id or 'not recorded'}`",
+        f"- **Code version:** `{state.repo_commit or 'not recorded'}`",
+        f"- **Paper:** `{state.paper_path or 'not recorded'}`",
+        f"- **Result:** `{status_str}`",
     ])
 
     triage_info = state.repo_profile.get("triage", {}) if hasattr(state, "repo_profile") and state.repo_profile else {}
     if triage_info.get("verdict"):
-        md_lines.append(f"**Triage Verdict:** `{triage_info.get('verdict')}` — {triage_info.get('reason', '')}  ")
+        md_lines.append(f"- **Could it run here?** `{triage_info.get('verdict')}` — {triage_info.get('reason', '')}")
 
     if state.provisioning_plan and state.provisioning_plan.get("packages"):
         pkg_names = [f"`{p.get('package')}`" for p in state.provisioning_plan.get("packages", [])]
-        md_lines.append(f"**Provisioned Dependencies:** {', '.join(pkg_names)}  ")
+        md_lines.append(f"- **Packages we installed for it:** {', '.join(pkg_names)}")
 
     md_lines.extend([
         "",
-        f"> **Integrity Check:** {verification_summary['summary_text']}",
+        f"> **How we checked our own wording:** {verification_summary['summary_text']}.",
         "",
         "---",
         "",
-        "## 1. Claims & Comparison",
+        "## 1. What the paper claims, and what we measured",
         ""
     ])
 
     if state.claims:
-        md_lines.append("### Selected Claims")
-        md_lines.append("| Claim ID | Metric | Reported | Tolerance | Primary | Source Ref |")
+        md_lines.append("### Claims we checked")
+        md_lines.append("| Claim | What was measured | Paper says | Allowed margin | Main claim? | Where it came from |")
         md_lines.append("|---|---|---|---|---|---|")
         for c in state.claims:
             if c.selected or c.primary:
@@ -356,42 +399,48 @@ def generate_report(
         md_lines.append("")
 
         if unselected_claims:
-            md_lines.append("### Unselected Claims (Not Checked)")
-            md_lines.append("| Claim ID | Metric | Reported Target | Source Reference | Selection Status |")
+            md_lines.append("### Claims we did not check")
+            md_lines.append("| Claim | What it measures | Paper says | Where it came from | Why not checked |")
             md_lines.append("|---|---|---|---|---|")
             for uc in unselected_claims:
                 md_lines.append(f"| `{uc.id}` | {uc.metric} | {uc.reported} | {uc.source_ref} | *Not Checked (Excluded)* |")
             md_lines.append("")
 
     if runs_summary["comparison_chart"]:
-        md_lines.append("### Execution Attempts")
-        md_lines.append("| Attempt | Exit Code | Observed Metric | Target | Within Tolerance? |")
+        md_lines.append("### Run by run")
+        md_lines.append("| Run | Finished cleanly? | We measured | Paper says | Result |")
         md_lines.append("|---|---|---|---|---|")
         for r in runs_summary["comparison_chart"]:
-            obs_str = f"{r['observed']:.4f}" if r['observed'] is not None else "N/A (crashed)"
+            obs_str = f"{r['observed']:.4f}" if r['observed'] is not None else "nothing (run produced no number)"
             tgt_str = f"{r['reported']:.4f}" if r['reported'] is not None else "N/A"
-            within_str = "Not measured" if r["within_tolerance"] is None else ("Yes" if r["within_tolerance"] else "No")
-            md_lines.append(f"| {r['attempt']} | {r['exit_code']} | {obs_str} | {tgt_str} | {within_str} |")
+            within_str = "Not measured" if r["within_tolerance"] is None else ("Matched" if r["within_tolerance"] else "Did not match")
+            if r["exit_code"] is None:
+                clean_str = "stopped by us"
+            elif r["exit_code"] == 0:
+                clean_str = "yes"
+            else:
+                clean_str = f"no (error code {r['exit_code']})"
+            md_lines.append(f"| {r['attempt']} | {clean_str} | {obs_str} | {tgt_str} | {within_str} |")
         md_lines.append("")
 
     md_lines.append("---")
-    md_lines.append("## 2. Findings")
+    md_lines.append("## 2. What we found")
     for s in grouped_statements["findings"]:
         ev_chips = " ".join([f"`{e}`" for e in s["evidence"]])
         md_lines.append(f"- **[{s['confidence'].upper()}]** {s['text']} {ev_chips}")
     if not grouped_statements["findings"]:
-        md_lines.append("*No findings statements verified.*")
+        md_lines.append("*Nothing was found that we could back up with evidence.*")
     md_lines.append("")
 
-    md_lines.append("## 3. Causes & Diagnostics")
+    md_lines.append("## 3. Why it happened")
     for s in grouped_statements["causes"]:
         ev_chips = " ".join([f"`{e}`" for e in s["evidence"]])
         md_lines.append(f"- **[{s['confidence'].upper()}]** {s['text']} {ev_chips}")
     if not grouped_statements["causes"]:
-        md_lines.append("*No diagnosed failure causes.*")
+        md_lines.append("*No cause was diagnosed, because nothing failed.*")
     md_lines.append("")
 
-    md_lines.append("## 4. Approved Patches Applied")
+    md_lines.append("## 4. What we changed")
     for p in applied_patches:
         md_lines.append(f"### Patch `{p['id']}` ({p['type']} — `{p['risk_class']}`)")
         md_lines.append(f"**Rationale:** {p['rationale']}")
@@ -401,7 +450,7 @@ def generate_report(
             md_lines.append("```")
         md_lines.append("")
     if not applied_patches:
-        md_lines.append("*Zero patches required.*")
+        md_lines.append("*Nothing had to be changed.*")
         md_lines.append("")
 
     if state.config_diff:
@@ -410,7 +459,7 @@ def generate_report(
         if conf_level == "static":
             md_lines.append("> **Notice:** Audit confidence is **static** (no runtime effective config was captured; values inferred statically from configs, AST argparse/dataclass defaults, or CLI overrides).")
         md_lines.append("")
-        md_lines.append("| Setting | Paper Value | Repo / Effective Value | Source | Status |")
+        md_lines.append("| Setting | What the paper says | What the code used | Found in | Result |")
         md_lines.append("| :--- | :--- | :--- | :--- | :--- |")
         for cd in state.config_diff:
             src_str = f"{cd.get('source_file') or 'N/A'}"
@@ -421,19 +470,19 @@ def generate_report(
             md_lines.append(f"| `{cd.get('key')}` | {cd.get('paper_value')} | {cd.get('effective_value')} | {src_str} | **{cd.get('status')}** |")
         md_lines.append("")
 
-    md_lines.append("## 5. Limitations & What Was Not Checked")
-    md_lines.append("### Limitations")
+    md_lines.append("## 5. The limits of this report")
+    md_lines.append("### Things that limit this result")
     for lim in mandatory_limitations + [s["text"] for s in grouped_statements["limitations"]]:
         md_lines.append(f"- {lim}")
     md_lines.append("")
-    md_lines.append("### What Was Not Checked")
+    md_lines.append("### Things we did not look at")
     for nc in mandatory_not_checked + [s["text"] for s in grouped_statements["not_checked"]]:
         md_lines.append(f"- {nc}")
     md_lines.append("")
 
     if removed_stmts:
         md_lines.append("---")
-        md_lines.append("## 6. Statements Removed by Verifier")
+        md_lines.append("## 6. Sentences we deleted for lack of evidence")
         for rem in removed_stmts:
             md_lines.append(f"- **`{rem['statement_id']}` ({rem['section']}):** {rem['text']}")
             md_lines.append(f"  *Reason:* {'; '.join(rem['violations'])}")
@@ -483,23 +532,24 @@ def generate_report(
 <body>
   <div class="container">
     {simulated_html}
-    <h1>Rerun Verification Report</h1>
+    <h1>Reproduction report</h1>
+    <p style="font-size:1.15em;color:#E2E8F0;line-height:1.5;margin:12px 0 18px;">{html.escape(verdict_sentence)}</p>
     <p><strong>Case:</strong> {html.escape(state.benchmark_id or 'Custom')} &nbsp;|&nbsp; <strong>Project:</strong> <code>{html.escape(state.project_id)}</code></p>
     <div style="background:#0B1220;border:1px solid #1E293B;border-radius:8px;padding:14px;margin:16px 0;font-size:0.9em;">
-      <div><strong>Repository URL:</strong> {html.escape(state.repo_url or state.benchmark_id or 'N/A')}</div>
-      <div><strong>Commit SHA:</strong> <code>{html.escape(state.repo_commit or 'HEAD')}</code></div>
-      <div><strong>Paper PDF:</strong> {html.escape(state.paper_path or 'N/A')}</div>
+      <div><strong>Code:</strong> {html.escape(state.repo_url or state.benchmark_id or 'not recorded')}</div>
+      <div><strong>Code version:</strong> <code>{html.escape(state.repo_commit or 'not recorded')}</code></div>
+      <div><strong>Paper:</strong> {html.escape(state.paper_path or 'not recorded')}</div>
     </div>
     <div style="margin: 20px 0;">
       <span class="badge {'badge-reproduced' if status_str == 'REPRODUCED' else ('badge-not' if status_str == 'NOT_REPRODUCED' else 'badge-other')}">{html.escape(status_str)}</span>
-      <span style="margin-left: 12px; color: #94A3B8;">after {after_n} approved fixes</span>
+      <span style="margin-left: 12px; color: #94A3B8;">after {after_n} change(s) you approved</span>
     </div>
     <p style="color: #94A3B8;">{html.escape(verification_summary['summary_text'])}</p>
     <hr style="border: 0; border-top: 1px solid #1E293B; margin: 24px 0;" />
-    <h2>Attempts & Comparison</h2>
+    <h2>Run by run</h2>
     <table>
       <thead>
-        <tr><th>Attempt</th><th>Exit Code</th><th>Observed Metric</th><th>Reported Target</th><th>Within Tolerance</th></tr>
+        <tr><th>Run</th><th>Error code</th><th>We measured</th><th>Paper says</th><th>Result</th></tr>
       </thead>
       <tbody>
         {chart_rows_html}
