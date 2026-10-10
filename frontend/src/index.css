@@ -1,0 +1,106 @@
+@import '@fontsource/libre-caslon-text/400.css';
+@import '@fontsource/libre-caslon-text/400-italic.css';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
+@import './styles/tokens.css';
+@import './landing/engine/engine.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: auto;
+    background-color: #EDE7DB;
+    min-height: 100%;
+  }
+  body {
+    overflow-x: clip;
+    background-color: #EDE7DB;
+    color: var(--ink);
+    font-family: 'JetBrains Mono', monospace;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  #root, main, .track {
+    overflow: visible;
+    background-color: #EDE7DB;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(140, 130, 120, 0.35);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(184, 87, 47, 0.6);
+  }
+}
+
+/* Washi tape effect */
+.washi-tape {
+  position: relative;
+  background: rgba(220, 230, 242, 0.65);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  backdrop-filter: blur(2px);
+  border-left: 2px dashed rgba(255,255,255,0.4);
+  border-right: 2px dashed rgba(255,255,255,0.4);
+}
+
+.washi-tape-amber {
+  position: relative;
+  background: rgba(253, 230, 138, 0.7);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  backdrop-filter: blur(2px);
+  border-left: 2px dashed rgba(255,255,255,0.4);
+  border-right: 2px dashed rgba(255,255,255,0.4);
+}
+
+/* Postcard ruled lines */
+.postcard-lines {
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent 27px,
+    #DDD6C3 28px
+  );
+  line-height: 28px;
+}
+
+/* Airmail chevron border */
+.airmail-border {
+  background: repeating-linear-gradient(
+    -45deg,
+    #B8572F,
+    #B8572F 10px,
+    #F4F1E8 10px,
+    #F4F1E8 20px,
+    #1F2A44 20px,
+    #1F2A44 30px,
+    #F4F1E8 30px,
+    #F4F1E8 40px
+  );
+}
+
+/* Postage stamp edge */
+.postage-stamp {
+  border: 1px dashed #CDC8BA;
+  outline: 5px solid #F4F1E8;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* Topographic contour map SVG background pattern */
+.topo-pattern {
+  background-color: var(--paper);
+  background-image: radial-gradient(var(--kraft) 1px, transparent 1px),
+    radial-gradient(var(--kraft) 1px, var(--paper) 1px);
+  background-size: 32px 32px;
+  background-position: 0 0, 16px 16px;
+}

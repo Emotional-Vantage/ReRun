@@ -281,11 +281,12 @@ def main() -> None:
             "--reload --reload-dir backend --reload-dir agent --reload-dir tools "
             "--reload-dir sandbox --timeout-graceful-shutdown 5"
         )
+    elif args.command == "ui":
+        run_cmd("npm run dev --prefix frontend")
     else:
         stage_map = {
             "calibrate": 3,
             "bench-real": 3,
-            "ui": 8,
             "adversarial": 9,
         }
         target_stage = stage_map.get(args.command, "N")

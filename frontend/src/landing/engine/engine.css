@@ -1,0 +1,33 @@
+html { scroll-behavior: auto; }                  /* smooth scrolling is done in JS and can be disabled */
+body { overflow-x: clip; }                       /* NOT overflow-x:hidden: that can break sticky */
+#root, main, .track { overflow: visible; }       /* NO overflow on any ancestor of .stage */
+
+.track { position: relative; }
+.stage { position: sticky; top: 0; height: 100svh; overflow: hidden; isolation: isolate; background: var(--night-deep); }
+
+.scene   { position: absolute; inset: 0; pointer-events: none; }
+.scene-n { position: absolute; inset: 0;
+           transform: translate3d(0, calc(var(--p, 0) * 8svh), 0) scale(calc(1 + var(--p, 0) * .04));
+           transform-origin: 50% 100%; }
+
+/* upper sheet: box ends at the baseline; body extends 40px below it for the torn zone */
+.scene-upper { position: absolute; left: 0; right: 0; top: 0; height: calc(100svh - var(--band, 0px));
+               transform-origin: 0 100%; pointer-events: auto; }
+.scene-upper > .body { position: absolute; inset: 0 0 -40px 0; }
+.scene-upper > .tear-svg { bottom: -40px; }
+
+/* lower sheet: box starts at the baseline; body extends 40px above it */
+.scene-lower { position: absolute; left: 0; right: 0; bottom: 0; height: var(--band, 0px); pointer-events: auto; }
+.scene-lower > .body { position: absolute; inset: -40px 0 0 0; }
+.scene-lower > .tear-svg { top: -40px; }
+
+.tear-svg { position: absolute; left: 0; width: 100%; height: 80px; pointer-events: none; }
+
+/* soft depth shadow next to the gap (cheap gradient, not box-shadow) */
+.scene-upper::after { content: ""; position: absolute; left: 0; right: 0; bottom: -84px; height: 44px; pointer-events: none;
+  background: linear-gradient(to bottom, rgba(15,23,42,.30), transparent); opacity: var(--te, 0); }
+.scene-lower::before { content: ""; position: absolute; left: 0; right: 0; top: -84px; height: 44px; pointer-events: none;
+  background: linear-gradient(to top, rgba(15,23,42,.30), transparent); opacity: var(--te, 0); }
+
+/* grain overlay once per stage */
+.grain { position: absolute; inset: 0; pointer-events: none; z-index: 50; mix-blend-mode: multiply; opacity: .09; filter: url(#paper-grain); }

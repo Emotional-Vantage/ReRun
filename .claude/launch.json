@@ -1,0 +1,42 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "uvicorn",
+        "backend.app.main:app",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8000",
+        "--reload",
+        "--reload-dir",
+        "backend",
+        "--reload-dir",
+        "agent",
+        "--reload-dir",
+        "tools",
+        "--reload-dir",
+        "sandbox",
+        "--timeout-graceful-shutdown",
+        "5"
+      ],
+      "port": 8000
+    },
+    {
+      "name": "ui",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "frontend"
+      ],
+      "port": 5173,
+      "url": "http://localhost:5173"
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+:root {
+  /* ── Paper (light surfaces) ───────────────────────────── */
+  --cream:        #F1ECE0;  /* torn fibre edge, primary button on dark, text on dark */
+  --paper:        #F4F1E8;  /* postcard, polaroid, info card, FAQ strips */
+  --kraft-light:  #D9D4C6;  /* Scene 2 background */
+  --kraft:        #CDC8BA;  /* teaser bands, stone paper */
+  --kraft-tree:   #B9B5A7;  /* pine silhouettes on kraft */
+  --shadow-strip: #8A8984;  /* grey strip under a tear */
+  --rose-paper:   #D8CFC4;  /* Scene 4 background */
+
+  /* ── Ink (text on paper) ──────────────────────────────── */
+  --ink:          #1F2A44;  /* main text on paper (12.6:1 on Paper) */
+  --ink-soft:     #4A5470;  /* secondary text on Kraft Light (5.1:1) */
+  --ink-blue:     #2F4F93;  /* handwriting, postcard title (7.0:1 on Paper) */
+  --frame-navy:   #1E3262;  /* picture frames */
+
+  /* ── Night (dark surfaces) ────────────────────────────── */
+  --night-top:    #34476F;
+  --night-bot:    #14203B;
+  --night-deep:   #0F172A;  /* app background (Spec §11) and Finale */
+
+  /* ── Sky sets ─────────────────────────────────────────── */
+  --dusk-top:     #4A5D80;  --dusk-mid: #5E6180;  --dusk-low: #6C6A7E;   /* Scene 1 */
+  --dawn-top:     #8FA3C4;  --dawn-mid: #C9B9B3;  --dawn-low: #E8C3A7;   /* Scene 6 */
+  --ember-top:    #4B3228;  --ember-bot: #2C1F1C;  --ember-glow: #E89650; /* Scene 5 */
+
+  /* ── Mountains and nature ─────────────────────────────── */
+  --mtn-far:      #3E3B52;
+  --mtn-tan:      #8D7765;
+  --mtn-clay:     #94705A;
+  --mtn-rust:     #8A5B45;
+  --mtn-lilac:    #8A7A9A;
+  --mtn-peach:    #E9B2A0;
+  --pine:         #2F5A3A;  --cone: #A8693A;  --bark: #5A3A28;  --squirrel: #B05A30;
+
+  /* ── Accent (the ONLY brand accent) ───────────────────── */
+  --rust:         #B8572F;  /* large text, borders, icons, link underlines, seal, big shapes */
+  --rust-ink:     #8F3F20;  /* SMALL text on paper (6.4:1 on Paper, 4.9:1 on Kraft Light) */
+
+  /* ── Semantic roles (UNCHANGED from Spec §11, app + chips only) ── */
+  --solver: #14B8A6;  --critic: #A78BFA;  --human: #F59E0B;
+  --fail:   #EF4444;  --ok:     #22C55E;  --tool:   #64748B;
+}
