@@ -272,17 +272,26 @@ def main() -> None:
     elif args.command == "record":
         print("Running tests with LLM_MODE=record to record cassettes...")
         run_cmd(f"{sys.executable} -m pytest tests/agent -q")
+    elif args.command == "api":
+        # --reload-dir keeps test edits from restarting the API, and the graceful-shutdown
+        # timeout stops an open SSE stream from wedging a reload ("Waiting for connections
+        # to close" forever).
+        run_cmd(
+            f"{sys.executable} -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 "
+            "--reload --reload-dir backend --reload-dir agent --reload-dir tools "
+            "--reload-dir sandbox --timeout-graceful-shutdown 5"
+        )
     else:
         stage_map = {
             "calibrate": 3,
             "bench-real": 3,
-            "api": 7,
             "ui": 8,
             "adversarial": 9,
         }
         target_stage = stage_map.get(args.command, "N")
         print(f"not implemented until Stage {target_stage}")
         sys.exit(1)
+
 
 
 if __name__ == "__main__":

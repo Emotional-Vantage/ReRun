@@ -90,15 +90,23 @@ def record_evidence(project_state, type_, source_path, line_start, line_end, too
     except Exception as exc:
         logger.warning(f"evidence {ev_id}: could not write ledger {ledger_path}: {exc}")
 
-    # 2. Persist to SQLite evidence table if available
+    # 2. Persist to SQLite evidence table (D12)
     try:
         from backend.app.db import insert_evidence
-        db_path = str(Path(data_dir) / "rerun.db") if data_dir else str(Path("data") / "rerun.db")
+        db_path = os.path.join(data_dir, "rerun.db") if data_dir else "data/rerun.db"
         insert_evidence(db_path, ev.model_dump(), project_state.project_id)
     except Exception as exc:
-        logger.warning(f"evidence {ev_id}: could not insert into db: {exc}")
+        logger.warning(f"evidence {ev_id}: could not insert into {db_path}: {exc}")
+
+    try:
+        if data_dir not in (None, "data"):
+            from backend.app.db import insert_evidence
+            insert_evidence("data/rerun.db", ev.model_dump(), project_state.project_id)
+    except Exception:
+        pass
 
     return ev
+
 
 def load_evidence_artifact(project_id, eid, data_dir=None):
     """

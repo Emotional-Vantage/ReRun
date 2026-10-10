@@ -92,7 +92,10 @@ def test_symlink_escaping_rejected(tmp_path):
     secret_file.write_text("secret_data")
 
     escaped_symlink = repo_dir / "leak.txt"
-    escaped_symlink.symlink_to(secret_file)
+    try:
+        escaped_symlink.symlink_to(secret_file)
+    except OSError as e:
+        pytest.skip(f"Symlink creation requires elevated privileges on Windows: {e}")
 
     with pytest.raises(RepoIngestError, match="Escaping symlink detected"):
         check_symlinks(repo_dir)

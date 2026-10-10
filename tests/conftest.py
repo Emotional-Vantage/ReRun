@@ -34,6 +34,7 @@ def isolate_database_from_the_running_app():
     if has_override:
         tmp_dir = tempfile.mkdtemp(prefix="rerun_test_db_")
         app_db.set_db_path_override(str(Path(tmp_dir) / "rerun.db"))
+        app_db.init_db("data/rerun.db")
         try:
             yield
         finally:

@@ -165,7 +165,7 @@ def run_case_headless(case_id: str, auto_approve: bool = True, use_fake_llm: boo
     is_real = sandbox_name == "DockerSandbox"
 
     print(f"\n========================================================")
-    print(f"🚀 Starting headless run for case '{case_id}'")
+    print(f"[*] Starting headless run for case '{case_id}'")
     print(f"   Project ID: {project_id}")
     print(f"   Sandbox: {sandbox_name} ({'real container' if is_real else 'SIMULATED, not a real container'})")
     print(f"   LLM: {'scripted FakeLLM' if use_fake_llm else 'live provider'}")
@@ -179,7 +179,7 @@ def run_case_headless(case_id: str, auto_approve: bool = True, use_fake_llm: boo
         if state.pending:
             kind = state.pending.get("kind")
             if kind == "claims":
-                print(f"📋 Claims extracted ({len(state.claims)} claims). Auto-confirming claims...")
+                print(f"[CLAIMS] Claims extracted ({len(state.claims)} claims). Auto-confirming claims...")
                 for c in state.claims:
                     c.confirmed_by_human = True
                 state.command_confirmed = True
@@ -187,7 +187,7 @@ def run_case_headless(case_id: str, auto_approve: bool = True, use_fake_llm: boo
             elif kind == "approval":
                 pending_patch_id = state.pending.get("patch_id")
                 patch = next((pp for pp in state.patches if pp.id == pending_patch_id), state.patches[-1])
-                print(f"⚖️ Patch proposed: {patch.id} ({patch.type}). Auto-approving...")
+                print(f"[PATCH] Patch proposed: {patch.id} ({patch.type}). Auto-approving...")
                 appr = Approval(
                     id=f"appr_{uuid.uuid4().hex[:6]}",
                     patch_id=patch.id,
@@ -198,13 +198,13 @@ def run_case_headless(case_id: str, auto_approve: bool = True, use_fake_llm: boo
                 state.approvals.append(appr)
                 state.pending = None
             else:
-                print(f"⚠️ Paused for pending {state.pending}. Clearing...")
+                print(f"[WARN] Paused for pending {state.pending}. Clearing...")
                 state.pending = None
 
     final_status = state.final.get("status") if state.final else state.phase
-    print(f"\n🏁 Finished case '{case_id}' in phase '{state.phase}'.")
-    print(f"📊 Final status: {final_status}")
-    print(f"🔁 Attempts: {len(state.attempts)}, Patches: {len(state.patches)}")
+    print(f"\n[DONE] Finished case '{case_id}' in phase '{state.phase}'.")
+    print(f"[STATUS] Final status: {final_status}")
+    print(f"[ATTEMPTS] Attempts: {len(state.attempts)}, Patches: {len(state.patches)}")
     if state.attempts:
         for att in state.attempts:
             print(f"   - Attempt {att.n}: exit {att.exit_code}, metrics {att.metrics}")
