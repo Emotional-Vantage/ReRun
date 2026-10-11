@@ -113,3 +113,75 @@ def test_fallback_provider_on_primary_failure(mock_call, monkeypatch):
     assert any(ev == "llm_fallback" for ev, _ in events)
     
     llm.set_event_listener(None)
+
+
+@patch("agent.llm.execute_provider_request")
+@patch("agent.llm.key_rotator")
+def test_critic_uses_groq_and_bypasses_key_rotation(mock_rotator, mock_exec, monkeypatch):
+    from agent import llm
+    monkeypatch.setattr(llm, "CRITIC_PROVIDER", "groq")
+    monkeypatch.setattr(llm, "CRITIC_MODEL", "openai/gpt-oss-120b")
+    monkeypatch.setattr(llm, "CRITIC_BASE_URL", "https://api.groq.com/openai/v1")
+    monkeypatch.setattr(llm, "CRITIC_API_KEY", "gsk_test_groq_api_key_12345")
+    monkeypatch.setattr(llm, "_ACTIVE_FAKE_LLM", None)
+
+    mock_exec.return_value = json.dumps({"name": "groq_critic", "count": 77})
+
+    res = llm.call("critic", "test_critic_mode", {"review": "data"}, SampleModel)
+
+    assert res.name == "groq_critic"
+    assert res.count == 77
+
+    # Ensure execute_provider_request received groq parameters and CRITIC_API_KEY directly
+    mock_exec.assert_called_once()
+    call_args = mock_exec.call_args[0]
+    assert call_args[0] == "groq"
+    assert call_args[1] == "openai/gpt-oss-120b"
+    assert call_args[2] == "https://api.groq.com/openai/v1"
+    assert call_args[3] == "gsk_test_groq_api_key_12345"
+
+    # Ensure key_rotator was NOT called for critic
+    mock_rotator.get_active_key.assert_not_called()
+    mock_rotator.record_success.assert_not_called()
+    mock_rotator.report_rate_limit.assert_not_called()
+
+
+@patch("httpx.Client.post")
+def test_execute_provider_request_groq_formatting(mock_post):
+    from agent.llm import execute_provider_request
+    from unittest.mock import MagicMock
+
+    mock_resp = MagicMock()
+    mock_resp.json.return_value = {
+        "choices": [{"message": {"content": json.dumps({"status": "ok"})}}]
+    }
+    mock_resp.raise_for_status = MagicMock()
+    mock_post.return_value = mock_resp
+
+    messages = [{"role": "user", "content": "hello"}]
+    res = execute_provider_request(
+        provider="groq",
+        model="openai/gpt-oss-120b",
+        base_url="https://api.groq.com/openai/v1",
+        api_key="gsk_test_key_abc1234567890",
+        messages=messages
+    )
+
+    assert res == json.dumps({"status": "ok"})
+    mock_post.assert_called_once()
+    post_url = mock_post.call_args[0][0]
+    post_kwargs = mock_post.call_args[1]
+
+    assert post_url == "https://api.groq.com/openai/v1/chat/completions"
+    assert post_kwargs["headers"] == {"Authorization": "Bearer gsk_test_key_abc1234567890"}
+    assert post_kwargs["json"]["model"] == "openai/gpt-oss-120b"
+    assert post_kwargs["json"]["response_format"] == {"type": "json_object"}
+
+
+def test_groq_key_secret_scrubbing():
+    groq_secret = "gsk_1234567890abcdef1234567890"
+    dirty = f"Error calling api with key {groq_secret}"
+    cleaned = scrub_secrets(dirty)
+    assert groq_secret not in cleaned
+    assert "[REDACTED_SECRET]" in cleaned or "[REDACTED_API_KEY]" in cleaned
+

@@ -150,7 +150,7 @@ def execute_provider_request(provider: str, model: str, base_url: str, api_key: 
             data = resp.json()
             return data["choices"][0]["message"]["content"]
 
-    elif provider == "openai_compat":
+    elif provider in ("openai_compat", "groq"):
         headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
         payload = {
             "model": model,
@@ -158,11 +158,15 @@ def execute_provider_request(provider: str, model: str, base_url: str, api_key: 
             "temperature": 0.0,
             "response_format": {"type": "json_object"}
         }
+        url = base_url.rstrip('/')
+        if not url.endswith("/chat/completions"):
+            url = f"{url}/chat/completions"
         with httpx.Client(timeout=60.0) as client:
-            resp = client.post(f"{base_url.rstrip('/')}/chat/completions", json=payload, headers=headers)
+            resp = client.post(url, json=payload, headers=headers)
             resp.raise_for_status()
             data = resp.json()
             return data["choices"][0]["message"]["content"]
+
 
     elif provider == "anthropic":
         headers = {
@@ -280,7 +284,8 @@ def call(
         provider = CRITIC_PROVIDER
         model = CRITIC_MODEL
         base_url = CRITIC_BASE_URL
-        api_key = key_rotator.get_active_key(role) if provider == "gemini" else CRITIC_API_KEY
+        # Critic uses CRITIC_API_KEY directly without key rotation
+        api_key = CRITIC_API_KEY
         
     if _ACTIVE_FAKE_LLM is not None:
         provider = "fake"
@@ -350,7 +355,7 @@ def call(
                 t0 = time.time()
                 resp_text = execute_provider_request(prov, mod, b_url, current_key, msgs)
                 _ = time.time() - t0
-                if prov == "gemini" and current_key:
+                if prov == "gemini" and role != "critic" and current_key:
                     key_rotator.record_success(current_key)
                 active_key = current_key
                 return resp_text
@@ -367,7 +372,7 @@ def call(
                             except ValueError:
                                 pass
 
-                    if prov == "gemini":
+                    if prov == "gemini" and role != "critic":
                         old_key = current_key
                         current_key = key_rotator.report_rate_limit(old_key)
                         if _EVENT_LISTENER:
@@ -386,7 +391,7 @@ def call(
             except Exception as e:
                 attempt_err = e
                 if "429" in str(e):
-                    if prov == "gemini":
+                    if prov == "gemini" and role != "critic":
                         old_key = current_key
                         current_key = key_rotator.report_rate_limit(old_key)
                         if _EVENT_LISTENER:
@@ -410,7 +415,7 @@ def call(
     except Exception as e:
         if provider != "fake":
             # Try fallback provider
-            fb_key = key_rotator.get_active_key(role) if FALLBACK_PROVIDER == "gemini" else FALLBACK_API_KEY
+            fb_key = key_rotator.get_active_key(role) if (FALLBACK_PROVIDER == "gemini" and role != "critic") else FALLBACK_API_KEY
             if _EVENT_LISTENER:
                 _EVENT_LISTENER("llm_fallback", {
                     "from_provider": provider,
@@ -424,6 +429,7 @@ def call(
                 if FALLBACK_PROVIDER == provider and FALLBACK_MODEL == model and fb_key == active_key:
                     time.sleep(2.0)
                 raw_response = attempt_llm_call(FALLBACK_PROVIDER, FALLBACK_MODEL, FALLBACK_BASE_URL, fb_key, messages)
+
             except Exception as fallback_e:
                 canned = get_benchmark_canned_response(benchmark_id, role, mode)
                 if canned is not None:

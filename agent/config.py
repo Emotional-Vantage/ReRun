@@ -39,10 +39,10 @@ SOLVER_MODEL = os.getenv("SOLVER_MODEL", "gemini-2.0-flash")
 SOLVER_BASE_URL = os.getenv("SOLVER_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/gemini")
 SOLVER_API_KEY = os.getenv("SOLVER_API_KEY", "")
 
-CRITIC_PROVIDER = os.getenv("CRITIC_PROVIDER", "gemini")
-CRITIC_MODEL = os.getenv("CRITIC_MODEL", "gemini-2.0-flash")
-CRITIC_BASE_URL = os.getenv("CRITIC_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/gemini")
-CRITIC_API_KEY = os.getenv("CRITIC_API_KEY", "")
+CRITIC_PROVIDER = os.getenv("CRITIC_PROVIDER", "groq")
+CRITIC_MODEL = os.getenv("CRITIC_MODEL", "openai/gpt-oss-120b")
+CRITIC_BASE_URL = os.getenv("CRITIC_BASE_URL", "https://api.groq.com/openai/v1")
+CRITIC_API_KEY = os.getenv("CRITIC_API_KEY", os.getenv("GROQ_API_KEY", ""))
 
 FALLBACK_PROVIDER = os.getenv("FALLBACK_PROVIDER", "gemini")
 FALLBACK_MODEL = os.getenv("FALLBACK_MODEL", "gemini-2.0-flash")
@@ -71,6 +71,7 @@ KEY_ROTATION_THRESHOLD = int(os.getenv("KEY_ROTATION_THRESHOLD", "100"))
 
 SECRET_PATTERNS = [
     r"sk-[a-zA-Z0-9_\-]{20,}",
+    r"gsk_[a-zA-Z0-9_\-]{20,}",
     r"ghp_[a-zA-Z0-9]{20,}",
     r"AIza[0-9A-Za-z\-_]{20,}",
     r"(?i)(?:api_key|apikey|secret|password|token)\s*[:=]\s*['\"]?([a-zA-Z0-9_\-\.]{8,})['\"]?"
@@ -90,7 +91,8 @@ def scrub_secrets(text: str) -> str:
         return text
     scrubbed = text
     # Known key values in env & multi-key pool & dynamically registered keys
-    keys_to_mask = list(set([SOLVER_API_KEY, CRITIC_API_KEY, FALLBACK_API_KEY] + GEMINI_API_KEYS + list(DYNAMIC_SECRET_KEYS)))
+    groq_key = os.getenv("GROQ_API_KEY", "")
+    keys_to_mask = list(set([SOLVER_API_KEY, CRITIC_API_KEY, FALLBACK_API_KEY, groq_key] + GEMINI_API_KEYS + list(DYNAMIC_SECRET_KEYS)))
     for k in keys_to_mask:
         if k and len(k) > 4:
             scrubbed = scrubbed.replace(k, "[REDACTED_API_KEY]")
