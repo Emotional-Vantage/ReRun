@@ -50,7 +50,7 @@ export const TrustScene: React.FC = () => {
     >
       {/* Campfire radial warm glow */}
       <div
-        className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full pointer-events-none opacity-25 blur-3xl"
+        className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[37.5rem] h-[18.75rem] rounded-full pointer-events-none opacity-25 blur-3xl"
         style={{ background: 'var(--ember-glow)' }}
         aria-hidden="true"
       />

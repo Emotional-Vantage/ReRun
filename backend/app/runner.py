@@ -70,6 +70,35 @@ def run_project_thread(project_id: str):
         state.phase = "DONE"
         state.final = {"status": "INCONCLUSIVE", "reason": f"internal error: {str(e)}"}
         
+    """
+    Hand back the GPU before anything else.
+
+    A droplet bills by the hour from the moment it is active, so the window
+    between "this project is finished" and "the droplet is destroyed" is money.
+    It is closed here, on the worker's way out, for every exit path including
+    the exception handler above -- not in the orchestrator, which can return
+    early at a gate and legitimately leave the droplet up for the operator's
+    next decision.
+
+    The teardown also produces the receipt (where it ran, how long, what it
+    cost), which is persisted with the state below so the report can print it.
+    """
+    if getattr(state, "remote_approved", False) and (state.phase == "DONE" or state.final):
+        try:
+            from agent.loop import release_remote_sandbox
+
+            released = release_remote_sandbox(project_id)
+            if released is not None and getattr(released, "receipt", None) is not None:
+                state.remote_receipt = released.receipt.to_dict()
+                logger.info(
+                    f"Destroyed remote droplet for {project_id}: "
+                    f"{state.remote_receipt.get('billed_seconds', 0):.0f}s billed"
+                )
+        except Exception as e:
+            # Never let a teardown failure mask the run's own outcome, but make
+            # it loud: an undestroyed droplet keeps charging.
+            logger.error(f"FAILED to release remote droplet for {project_id}: {e}")
+
     status = state.final.get("status") if state.final else state.phase
     save_project_state("data/rerun.db", project_id, state.benchmark_id, state.repo_commit, status, state)
     logger.info(f"Worker for project {project_id} finished. Phase: {state.phase}, Pending: {state.pending}")

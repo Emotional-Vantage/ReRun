@@ -59,7 +59,7 @@ export const NavbarApp: React.FC<NavbarAppProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-[#E5DFD3] border-b border-[#CDC5B4] text-[#1F2A44] shadow-sm">
+    <header className="no-print sticky top-0 z-40 w-full bg-[#E5DFD3] border-b border-[#CDC5B4] text-[#1F2A44] shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
         {/* Left: Brand & Home Link */}
         <div className="flex items-center gap-4">

@@ -144,7 +144,7 @@ export const Landing: React.FC = () => {
                 >
                   <div className="w-full flex-1 relative">{s.body}</div>
                   {!last && (
-                    <div className="relative w-full h-[80px] -mt-[40px] z-20 pointer-events-none">
+                    <div className="relative w-full h-[5rem] -mt-[40px] z-20 pointer-events-none">
                       <TearEdge seed={1000 + i * 7} edge="bottom" />
                     </div>
                   )}

@@ -16,7 +16,7 @@ from backend.app.models import (
     ClaimsConfirmRequest, ApprovalRequest, HealthResponse,
     ProvisioningApproveRequest
 )
-from backend.app.db import get_connection, get_project_state, save_project_state
+from backend.app.db import get_connection, get_events_since, get_project_state, save_project_state
 import backend.app.runner as runner
 
 def start_project_worker(project_id: str, allow_resume: bool = False) -> bool:
@@ -453,8 +453,55 @@ def stream_events(id: str, request: Request, last_event_id: Optional[str] = Head
     return StreamingResponse(
         stream_manager.event_generator(id, last_id, request=request),
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        headers={
+            # `no-transform` is the part that matters behind a CDN. Cloudflare
+            # compresses text/* responses, and compressing a stream means
+            # buffering it: through a tunnel the client received the 200 and the
+            # content-type immediately and then nothing at all, so the trace
+            # ledger sat empty on a run that had already finished. Cloudflare
+            # strips X-Accel-Buffering (it is nginx's), but it honours
+            # no-transform, which tells it not to touch the body at all.
+            "Cache-Control": "no-cache, no-transform",
+            # Belt and braces for proxies that negotiate encoding anyway.
+            "Content-Encoding": "identity",
+            # Still correct for a direct nginx deployment.
+            "X-Accel-Buffering": "no",
+        },
     )
+
+@router.get("/api/projects/{id}/events/poll")
+def poll_events(id: str, last_event_id: int = 0, limit: int = 500):
+    """
+    The same events as the SSE stream, as one ordinary JSON response.
+
+    Server-sent events only arrive if everything between the server and the
+    browser is willing to forward a response body before that body ends. A
+    Cloudflare quick tunnel is not: it holds the body until the response
+    completes, and an event stream never completes, so the dashboard received
+    the 200 and the content-type and then nothing for as long as it was left
+    open. The trace ledger sat at "0 events" on a run that had already
+    finished.
+
+    Rather than chase proxy headers (no-transform and identity were both
+    honoured and changed nothing), the client watches its own stream and
+    switches to this endpoint when no event arrives. The data is identical and
+    comes from the same table, so a polled dashboard shows exactly what a
+    streamed one does, only a couple of seconds later.
+    """
+    state = get_project_state("data/rerun.db", id)
+    if not state:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    events = get_events_since("data/rerun.db", id, last_event_id)
+    truncated = len(events) > limit
+    return {
+        "events": events[:limit],
+        # Lets the client resume exactly where this page ended, instead of
+        # re-reading from zero and re-rendering the whole ledger each poll.
+        "last_event_id": (events[:limit][-1]["id"] if events[:limit] else last_event_id),
+        "has_more": truncated,
+    }
+
 
 @router.get("/api/projects/{id}/approvals/pending")
 def get_pending_approval(id: str):

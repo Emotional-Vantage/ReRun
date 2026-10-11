@@ -211,6 +211,13 @@ class ProjectState(BaseModel):
     abort_requested: bool = False
     provisioning_plan: dict | None = None
     provisioning_approved: bool = False
+    # Remote GPU execution (DigitalOcean Gradient). `remote_plan` holds the
+    # priced offer the operator is shown; `remote_receipt` holds what the run
+    # actually cost and where it ran, which the report prints verbatim so a
+    # reader can tell a locally-sandboxed result from a rented-hardware one.
+    remote_plan: dict | None = None
+    remote_approved: bool = False
+    remote_receipt: dict | None = None
     pending: dict | None = None
     final: dict | None = None
     rejected_actions: list[dict] = Field(default_factory=list)

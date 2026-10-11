@@ -83,6 +83,50 @@ def set_sandbox(sb):
     _OVERRIDE_SANDBOX = sb
 
 
+_REMOTE_SANDBOXES: dict = {}
+
+
+def get_sandbox_for(state, deps: dict | None = None):
+    """
+    Pick the sandbox for one project.
+
+    Remote GPU execution is approved per project, not per server, so the choice
+    cannot live in SANDBOX_TYPE alone: two projects can legitimately be running
+    at once with only one of them paying for a droplet. An injected sandbox
+    (tests, fixtures) always wins; after that, a project whose operator approved
+    the GPU bill gets a GradientSandbox, cached so repeated runs within the
+    project reuse the one droplet instead of renting a new one each time.
+    """
+    deps = deps or {}
+    injected = deps.get("sandbox")
+    if injected is not None:
+        return injected
+
+    if getattr(state, "remote_approved", False):
+        pid = state.project_id
+        existing = _REMOTE_SANDBOXES.get(pid)
+        if existing is not None:
+            return existing
+        from sandbox.gradient.sandbox import GradientSandbox
+
+        sb = GradientSandbox()
+        _REMOTE_SANDBOXES[pid] = sb
+        return sb
+
+    return get_sandbox()
+
+
+def release_remote_sandbox(project_id: str):
+    """Destroy a project's droplet and forget it. Safe to call more than once."""
+    sb = _REMOTE_SANDBOXES.pop(project_id, None)
+    if sb is not None:
+        try:
+            sb.kill(project_id)
+        except Exception:
+            pass
+    return sb
+
+
 def resolve_attempt_log(state: ProjectState, deps: dict, attempt_num: Optional[int] = None) -> Optional[Path]:
     """
     Resolves the path to a specific attempt's execution log.
@@ -273,7 +317,7 @@ def guard_budgets(state: ProjectState) -> bool:
 def handle_ingest(state: ProjectState, deps: dict):
     emit_event(state, "system", "phase_changed", f"Transitioned to {state.phase}")
 
-    sandbox = deps.get("sandbox") or get_sandbox()
+    sandbox = get_sandbox_for(state, deps)
     is_real_container = type(sandbox).__name__ == "DockerSandbox"
     state.simulated = not is_real_container
     if state.simulated:
@@ -465,12 +509,76 @@ def handle_preflight(state: ProjectState, deps: dict):
     state.preflight = res
     if res["blockers"]:
         if "gpu_required" in res["blockers"]:
-            emit_event(
-                state, "system", "gpu_unavailable",
-                f"Repository requires a GPU; sandbox cannot provide one: {res.get('gpu_detail', '')}"
-            )
-        state.phase = "STATUS"
-        return
+            """
+            A GPU requirement used to end the reproduction here: ReRun would
+            report UNABLE_TO_EXECUTE without ever running the paper's code.
+            That is a hardware limit, not a verdict about the paper, and it
+            rules out most of the literature worth checking.
+
+            When remote execution is configured we price a GPU droplet instead
+            and put the cost in front of the operator. Renting hardware is a
+            decision with a bill attached, so it gets a human gate of its own
+            rather than happening quietly -- the same treatment provisioning
+            and patching already get.
+            """
+            from sandbox.gradient.sandbox import gradient_enabled
+
+            if gradient_enabled() and not state.remote_approved:
+                try:
+                    from sandbox.gradient.sandbox import plan_remote_execution
+
+                    plan = plan_remote_execution()
+                    state.remote_plan = plan
+                    est = plan["estimate"]
+                    state.pending = {
+                        "kind": "remote_gpu",
+                        "id": f"gpu_{state.project_id}",
+                        "reason": res.get("gpu_detail", "This repository requires a GPU."),
+                        "plan": plan,
+                    }
+                    cost_phrase = (
+                        f"about ${est['estimated_usd']:.2f}"
+                        if est["estimated_usd"] is not None
+                        else "an amount DigitalOcean did not report"
+                    )
+                    emit_event(
+                        state, "system", "remote_gpu_proposed",
+                        f"This paper needs a GPU. A {est['size_slug']} droplet in "
+                        f"{est['region']} would cost {cost_phrase} for up to "
+                        f"{est['budgeted_minutes']} minutes. Awaiting approval.",
+                    )
+                    return
+                except Exception as e:
+                    # Could not price it, so we cannot ask for consent to spend.
+                    # Fall through to the honest refusal rather than renting
+                    # hardware on an unpriced guess.
+                    emit_event(
+                        state, "system", "warning",
+                        f"Remote GPU execution is enabled but could not be planned: {e}",
+                    )
+
+            if state.remote_approved:
+                # The operator agreed to pay. Drop the blocker that only ever
+                # described the local host and carry on into SETUP; the sandbox
+                # swap happens in get_sandbox via SANDBOX_TYPE.
+                res["blockers"] = [b for b in res["blockers"] if b != "gpu_required"]
+                state.preflight = res
+                emit_event(
+                    state, "system", "remote_gpu_approved",
+                    "Running on a remote GPU droplet; results will be marked as "
+                    "produced on rented hardware.",
+                )
+                if not res["blockers"]:
+                    pass  # fall through to provisioning below
+            else:
+                emit_event(
+                    state, "system", "gpu_unavailable",
+                    f"Repository requires a GPU; sandbox cannot provide one: {res.get('gpu_detail', '')}"
+                )
+
+        if res["blockers"]:
+            state.phase = "STATUS"
+            return
 
     from tools.provisioning import build_provisioning_plan, download_wheels_for_project
     entry_script = None
@@ -529,7 +637,7 @@ def handle_preflight(state: ProjectState, deps: dict):
 def handle_setup(state: ProjectState, deps: dict):
     emit_event(state, "system", "phase_changed", f"Transitioned to {state.phase}")
     ws = deps.get("workspace", paths.workspace_path(state.project_id))
-    sb = deps.get("sandbox", get_sandbox())
+    sb = get_sandbox_for(state, deps)
 
     req_file = Path(ws) / "requirements.txt"
     if req_file.exists():
@@ -560,7 +668,7 @@ def handle_setup(state: ProjectState, deps: dict):
 def handle_run(state: ProjectState, deps: dict):
     emit_event(state, "system", "phase_changed", f"Transitioned to {state.phase}")
     ws = deps.get("workspace", paths.workspace_path(state.project_id))
-    sb = deps.get("sandbox", get_sandbox())
+    sb = get_sandbox_for(state, deps)
 
     n = len(state.attempts) + 1
     t0 = time.time()
@@ -927,7 +1035,7 @@ def handle_diagnose(state: ProjectState, deps: dict):
                     or cmd_trim.startswith("ls")
                     or cmd_trim.startswith("cat")
                 ):
-                    sb = deps.get("sandbox", get_sandbox())
+                    sb = get_sandbox_for(state, deps)
                     res = sb.execute(state, ws, cmd, "investigate", step_num)
                     log_p = res.log_path if hasattr(res, "log_path") else (res[1] if isinstance(res, tuple) else "")
                     if log_p and Path(log_p).is_file():
@@ -1316,7 +1424,7 @@ def handle_patch_apply(state: ProjectState, deps: dict):
     emit_event(state, "system", "phase_changed", f"Transitioned to {state.phase}")
     patch = state.patches[-1]
     ws = deps.get("workspace", paths.workspace_path(state.project_id))
-    sb = deps.get("sandbox", get_sandbox())
+    sb = get_sandbox_for(state, deps)
 
     success = apply_patch(state, patch, ws)
     if success:

@@ -14,7 +14,7 @@ export const ProblemScene: React.FC = () => {
       }}
     >
       {/* Pen Sketch Peak behind the postcard */}
-      <div className="absolute right-[5%] top-[10%] w-[480px] h-[380px] opacity-25 pointer-events-none hidden lg:block text-ink">
+      <div className="absolute right-[5%] top-[10%] w-[30rem] h-[23.75rem] opacity-25 pointer-events-none hidden lg:block text-ink">
         <PenSketchPeakSvg />
       </div>
 
@@ -63,7 +63,7 @@ export const ProblemScene: React.FC = () => {
 
       {/* 3D Flip Postcard Container */}
       <div
-        className="relative z-20 w-full max-w-[840px] h-[440px] sm:h-[470px] lg:h-[500px] perspective-1000 select-none"
+        className="relative z-20 w-full max-w-[52.5rem] h-[27.5rem] sm:h-[29.375rem] lg:h-[31.25rem] perspective-1000 select-none"
         style={{
           transform: 'rotate(-1.2deg)',
         }}
@@ -130,7 +130,7 @@ export const ProblemScene: React.FC = () => {
 
               {/* Smaller overlapping polaroid with washi tape */}
               <div
-                className="absolute -bottom-2 -left-2 w-[165px] bg-[#FFFFFF] p-2 pb-3 shadow-lg border border-kraft z-20"
+                className="absolute -bottom-2 -left-2 w-[10.3125rem] bg-[#FFFFFF] p-2 pb-3 shadow-lg border border-kraft z-20"
                 style={{ transform: 'rotate(4deg)' }}
               >
                 {/* Tape */}

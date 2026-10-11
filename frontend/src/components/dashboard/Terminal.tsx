@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ScrollText, Download, Pause, Play } from 'lucide-react';
+import { ScrollText, Pause, Play } from 'lucide-react';
 import { fetchRunLog } from '../../api/client';
 
 interface TerminalProps {
@@ -58,16 +58,6 @@ export const Terminal: React.FC<TerminalProps> = ({
     return `${mins.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const handleDownloadLog = () => {
-    const blob = new Blob([logContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `run_${selectedRun}.log`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   const runsList = Array.from({ length: Math.max(1, totalAttempts) }, (_, i) => i + 1);
 
   const lines = logContent ? logContent.split('\n') : [];
@@ -83,58 +73,42 @@ export const Terminal: React.FC<TerminalProps> = ({
   */
   return (
     <div className="flex flex-col h-full min-h-0 bg-paper border border-kraft rounded-sm overflow-hidden shadow-sm font-mono text-xs">
-      {/* Header */}
-      <div className="shrink-0 flex items-center justify-between px-4 py-2.5 bg-kraft-light border-b border-kraft">
-        <div className="flex items-center gap-2">
-          <ScrollText className="w-4 h-4 text-rust" />
-          <span className="font-bold text-ink uppercase tracking-[0.14em] text-[11px]">
-            Run Log
-          </span>
-          <span
-            className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-paper border border-kraft text-ink-soft text-[11px]"
-            title="Live session elapsed time"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-ok animate-pulse inline-block" />
-            <span>{formatElapsed(elapsedSeconds)}</span>
-          </span>
-          <select
-            value={selectedRun}
-            onChange={(e) => setSelectedRun(Number(e.target.value))}
-            className="ml-2 bg-paper text-ink border border-kraft rounded-sm px-2 py-0.5 text-xs focus:outline-none focus:border-rust"
-          >
-            {runsList.map((r) => (
-              <option key={r} value={r}>
-                Run #{r}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Action buttons */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setAutoScroll(!autoScroll)}
-            className={`flex items-center gap-1 px-2 py-0.5 rounded-sm border text-[11px] transition-colors ${
-              autoScroll
-                ? 'bg-paper text-rust-ink border-rust/50 font-semibold'
-                : 'bg-paper text-ink-soft border-kraft'
-            }`}
-            title={autoScroll ? 'Pause autoscroll' : 'Resume autoscroll'}
-          >
-            {autoScroll ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-            <span className="hidden sm:inline">{autoScroll ? 'Following' : 'Paused'}</span>
-          </button>
-
-          <button
-            onClick={handleDownloadLog}
-            disabled={!logContent}
-            className="flex items-center gap-1 px-2 py-0.5 rounded-sm bg-paper hover:bg-kraft text-ink border border-kraft text-[11px] disabled:opacity-40 transition-colors"
-            title="Download log file"
-          >
-            <Download className="w-3 h-3" />
-            <span className="hidden sm:inline">Download</span>
-          </button>
-        </div>
+      {/* Header controls: single centered row */}
+      <div className="shrink-0 flex items-center justify-center flex-wrap gap-2 px-3 py-2 bg-kraft-light border-b border-kraft text-center">
+        <ScrollText className="w-4 h-4 text-rust shrink-0" />
+        <span className="font-bold text-ink uppercase tracking-[0.14em] text-[11px] shrink-0">
+          Run Log
+        </span>
+        <span
+          className="flex items-center gap-1.5 px-2 py-0.5 rounded-sm bg-paper border border-kraft text-ink-soft text-[11px] shrink-0"
+          title="Live session elapsed time"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-ok animate-pulse inline-block" />
+          <span>{formatElapsed(elapsedSeconds)}</span>
+        </span>
+        <select
+          value={selectedRun}
+          onChange={(e) => setSelectedRun(Number(e.target.value))}
+          className="bg-paper text-ink border border-kraft rounded-sm px-2 py-0.5 text-xs focus:outline-none focus:border-rust shrink-0 cursor-pointer"
+        >
+          {runsList.map((r) => (
+            <option key={r} value={r}>
+              Run #{r}
+            </option>
+          ))}
+        </select>
+        <button
+          onClick={() => setAutoScroll(!autoScroll)}
+          className={`flex items-center gap-1 px-2 py-0.5 rounded-sm border text-[11px] transition-colors shrink-0 ${
+            autoScroll
+              ? 'bg-paper text-rust-ink border-rust/50 font-semibold'
+              : 'bg-paper text-ink-soft border-kraft'
+          }`}
+          title={autoScroll ? 'Pause autoscroll' : 'Resume autoscroll'}
+        >
+          {autoScroll ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+          <span>{autoScroll ? 'Following' : 'Paused'}</span>
+        </button>
       </div>
 
       {/* Log sheet */}

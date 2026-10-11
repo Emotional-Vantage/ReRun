@@ -27,10 +27,10 @@ export const NavbarLanding: React.FC = () => {
   return (
     <>
       <header
-        className="fixed top-0 left-0 right-0 z-[100] h-[96px] md:h-[110px] pointer-events-none transition-colors duration-300"
+        className="fixed top-0 left-0 right-0 z-[100] h-[6rem] md:h-[6.875rem] pointer-events-none transition-colors duration-300"
         style={{ color: navColor }}
       >
-        <div className="max-w-[1440px] mx-auto h-full px-5 sm:px-8 lg:px-10 flex items-center justify-between">
+        <div className="max-w-[90rem] mx-auto h-full px-5 sm:px-8 lg:px-10 flex items-center justify-between">
           {/* Left: Brand Wordmark + Loop Mark */}
           <div className="flex items-center gap-3 pointer-events-auto shrink-0">
             <Link

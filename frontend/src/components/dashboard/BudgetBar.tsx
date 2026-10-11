@@ -19,7 +19,7 @@ export const BudgetBar: React.FC<BudgetBarProps> = ({ budgets }) => {
   return (
     <div className="flex flex-wrap items-center gap-6 text-xs font-mono bg-[#FAF7F0] border border-[#CDC5B4] rounded-lg px-4 py-2.5 shadow-sm text-[#1F2A44]">
       {/* Steps gauge */}
-      <div className="flex items-center gap-2.5 flex-1 min-w-[180px]">
+      <div className="flex items-center gap-2.5 flex-1 min-w-[11.25rem]">
         <div className="flex items-center justify-between w-full">
           <span className="text-[#4A5470]">Step Budget:</span>
           <span className={`font-semibold ${isStepWarning ? 'text-amber-700' : 'text-[#1F2A44]'}`}>
@@ -39,7 +39,7 @@ export const BudgetBar: React.FC<BudgetBarProps> = ({ budgets }) => {
       </div>
 
       {/* Patches gauge */}
-      <div className="flex items-center gap-2.5 flex-1 min-w-[180px]">
+      <div className="flex items-center gap-2.5 flex-1 min-w-[11.25rem]">
         <div className="flex items-center justify-between w-full">
           <span className="text-[#4A5470]">Patch Budget:</span>
           <span className="text-[#1F2A44] font-semibold">

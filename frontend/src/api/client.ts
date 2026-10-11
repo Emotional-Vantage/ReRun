@@ -2,6 +2,7 @@ import type {
   BenchmarkCase,
   Claim,
   CriticReview,
+  Event,
   EvidenceItem,
   HealthResponse,
   Patch,
@@ -162,6 +163,17 @@ export async function fetchReportMarkdown(projectId: string): Promise<string> {
 }
 
 /** The project's evidence ledger. Entries the stores cannot serve carry available:false. */
+export async function pollEvents(
+  projectId: string,
+  lastEventId: number
+): Promise<{ events: Event[]; last_event_id: number; has_more: boolean }> {
+  const res = await fetch(
+    `${BASE_URL}/api/projects/${projectId}/events/poll?last_event_id=${lastEventId}`
+  );
+  if (!res.ok) throw new Error(`Failed to poll events: ${res.status}`);
+  return res.json();
+}
+
 export async function fetchEvidenceLedger(projectId: string): Promise<EvidenceItem[]> {
   const res = await fetch(`${BASE_URL}/api/projects/${projectId}/evidence`);
   if (!res.ok) throw new Error(`Failed to fetch evidence ledger: ${res.statusText}`);

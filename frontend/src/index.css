@@ -10,10 +10,57 @@
 @tailwind utilities;
 
 @layer base {
+  /*
+    One scale for the whole product.
+
+    Everything here is sized in rem -- Tailwind's text-*, p-*, gap-* and w-*
+    scales are all rem -- so the root font size is the single dial that
+    controls how large the interface renders. It used to be the browser
+    default 16px on every machine, which meant a layout tuned on one laptop
+    was cramped on a 1366x768 panel and marooned in whitespace on a 27"
+    monitor. Breakpoints alone could not fix that: they jump at thresholds,
+    so two laptops a hundred pixels apart got visibly different designs.
+
+    This makes the dial continuous. Width and height both contribute, because
+    the landing page is a stack of full-height sheets where vertical room is
+    the binding constraint, while the dashboard's tables care about width.
+    The clamp keeps it legible on a small display and stops it ballooning on
+    a large one.
+
+      1280x720  -> ~15.2px      1536x864  -> ~16.4px
+      1366x768  -> ~15.9px      1920x1080 -> 18px (ceiling)
+
+    Anyone who has set a larger default font size in their browser still gets
+    it: the floor and ceiling are absolute, but nothing here overrides a user
+    stylesheet, and every size downstream stays proportional.
+  */
   html {
+    font-size: clamp(13px, 0.45vw + 0.55vh + 5.5px, 18px);
     scroll-behavior: auto;
     background-color: #EDE7DB;
     min-height: 100%;
+  }
+
+  /*
+    Media must never be the thing that forces a horizontal scrollbar.
+    body already has overflow-x: clip, but clipping hides the overflow rather
+    than preventing it, which on a narrow laptop silently cuts off the right
+    edge of a wide table instead of letting it scroll.
+  */
+  img,
+  svg,
+  video,
+  canvas {
+    max-width: 100%;
+  }
+
+  /*
+    A wide data table should scroll inside its own card rather than widen the
+    page. Applied to the wrapper, not the table, so the header stays put.
+  */
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
   body {
     overflow-x: clip;
@@ -103,4 +150,104 @@
     radial-gradient(var(--kraft) 1px, var(--paper) 1px);
   background-size: 32px 32px;
   background-position: 0 0, 16px 16px;
+}
+
+/* ───────────────────────────────────────────────────────────────
+   Printing a report
+
+   A report is the one artefact that leaves the app: it gets attached
+   to an email, handed to a supervisor, filed next to the paper. What
+   belongs on that page is the finding and the evidence behind it --
+   not the controls of the tool that produced it. Printing used to
+   carry the whole console chrome onto the sheet: a STOP ALL button, a
+   Console/Report switch, live Docker and LLM status lights. On paper
+   those are not just noise, they are misleading, because they imply
+   a live system to a reader who only has a PDF.
+
+   `.no-print` marks that chrome. Everything else is re-laid for paper:
+   ink-saving backgrounds, no shadows, and page breaks that do not cut
+   a table or a verdict in half.
+   ─────────────────────────────────────────────────────────────── */
+@media print {
+  .no-print,
+  .no-print * {
+    display: none !important;
+  }
+
+  /* Paper is white; the kraft tones are a screen affordance and would
+     otherwise flood the page with ink. */
+  html,
+  body,
+  #root,
+  main {
+    background: #fff !important;
+    color: #1F2A44 !important;
+  }
+
+  /* The on-screen column is narrowed for reading comfort against a wide
+     monitor. A sheet of A4 is already that width, so give it everything. */
+  main {
+    max-width: none !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  main > * + * {
+    margin-top: 0.85rem !important;
+  }
+
+  /* Depth cues do not survive printing: they come out as grey smudges. */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Allow sections to break across pages naturally.
+     Having break-inside: avoid on <section> was the root cause of
+     half-blank pages and massive awkward whitespace in print/PDF. */
+  section {
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+  }
+
+  /* Keep discrete small units from breaking across pages awkwardly */
+  .print-avoid-break,
+  .print-card,
+  .print-keep,
+  tr,
+  figure {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  h1, h2, h3, h4, .section-header {
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
+
+  .report-chart-container {
+    height: 180px !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* A printed link that says "here" is useless; show where it goes. */
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.75em;
+    word-break: break-all;
+  }
+
+  /* Borders stay crisp hairline so they survive mono/color printers */
+  table,
+  th,
+  td {
+    border-color: #CDC5B4 !important;
+  }
+
+  @page {
+    margin: 10mm 12mm;
+    size: auto;
+  }
 }

@@ -117,7 +117,7 @@ export const FieldNotesScene: React.FC = () => {
       {/* Main Content Area: Left Polaroid Stack + Right Paper Info Card */}
       <div className="relative z-10 w-full max-w-5xl flex flex-col md:flex-row items-center justify-center gap-6 md:gap-8 lg:gap-12 my-auto">
         {/* Left: Polaroid Stack */}
-        <div className="relative w-[250px] sm:w-[280px] md:w-[300px] lg:w-[320px] h-[300px] sm:h-[330px] md:h-[350px] lg:h-[380px] flex items-center justify-center">
+        <div className="relative w-[15.625rem] sm:w-[17.5rem] md:w-[18.75rem] lg:w-[20rem] h-[18.75rem] sm:h-[20.625rem] md:h-[21.875rem] lg:h-[23.75rem] flex items-center justify-center">
           {/* Underneath Polaroid (Background tilt) */}
           <div
             className="absolute inset-x-2 inset-y-2 bg-[#FAF7F0] border border-kraft/60 shadow-md p-3 pb-8 transform -rotate-6 transition-transform opacity-70"
@@ -176,7 +176,7 @@ export const FieldNotesScene: React.FC = () => {
 
         {/* Right: Paper Info Card */}
         <div
-          className="w-full max-w-[480px] bg-paper text-ink rounded-sm p-6 md:p-8 shadow-xl border border-kraft flex flex-col justify-between min-h-[340px]"
+          className="w-full max-w-[30rem] bg-paper text-ink rounded-sm p-6 md:p-8 shadow-xl border border-kraft flex flex-col justify-between min-h-[21.25rem]"
           style={{ transform: 'rotate(-0.8deg)' }}
         >
           <div>

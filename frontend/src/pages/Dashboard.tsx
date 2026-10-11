@@ -282,8 +282,17 @@ export const Dashboard: React.FC = () => {
           />
         )}
 
-        {/* Middle 3-Column Work Desk: Trace | Terminal | Diff */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[500px] min-h-0">
+        {/*
+          Work desk: trace, run log and diff.
+
+          The height was pinned at 500px, which is a different fraction of the
+          screen on every machine -- most of a 768px-tall laptop, a third of a
+          1440p monitor. Tying it to the viewport keeps the same proportion of
+          the window everywhere, and the rem bounds stop it collapsing to
+          nothing on a short window or stretching past comfortable reading on
+          a very tall one.
+        */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[clamp(22rem,52vh,40rem)] min-h-0">
           {/* Col 1: Trace Panel */}
           <div className="h-full min-h-0 flex flex-col overflow-hidden">
             <TracePanel

@@ -3,7 +3,7 @@ import React from 'react';
 export const BadgeLogo: React.FC<{ className?: string }> = ({ className = '' }) => {
   return (
     <div
-      className={`relative w-[50px] h-[58px] border border-current flex flex-col items-center justify-between p-1.5 select-none transition-colors duration-300 ${className}`}
+      className={`relative w-[3.125rem] h-[3.625rem] border border-current flex flex-col items-center justify-between p-1.5 select-none transition-colors duration-300 ${className}`}
       title="Rerun · Autonomous Reproduction"
     >
       {/* Mountain-in-loop signature mark */}

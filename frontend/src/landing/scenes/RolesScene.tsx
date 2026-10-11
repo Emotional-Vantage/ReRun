@@ -95,7 +95,7 @@ export const RolesScene: React.FC = () => {
         {roles.map((r, i) => (
           <div
             key={i}
-            className="group relative bg-paper rounded-sm p-6 shadow-lg border border-kraft transition-all duration-300 hover:rotate-0 hover:scale-105 hover:shadow-2xl flex flex-col justify-between min-h-[290px]"
+            className="group relative bg-paper rounded-sm p-6 shadow-lg border border-kraft transition-all duration-300 hover:rotate-0 hover:scale-105 hover:shadow-2xl flex flex-col justify-between min-h-[18.125rem]"
             style={{ transform: `rotate(${r.tilt})` }}
           >
             {/* Washi Tape on top */}
