@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileCheck2, AlertOctagon, Power } from 'lucide-react';
+import { LayoutDashboard, FileCheck2, AlertOctagon, Power, Plus } from 'lucide-react';
 import { abortProject, killSwitch } from '../../api/client';
 
 interface NavbarAppProps {
@@ -94,9 +94,14 @@ export const NavbarApp: React.FC<NavbarAppProps> = ({
               <span className="text-[#4A5470]">{projectId.slice(0, 10)}</span>
             </div>
 
-            <div className="px-2.5 py-1 rounded-sm bg-[#FAF7F0] border border-amber-600/40 text-xs font-mono text-amber-800 font-bold shadow-sm">
-              {phase}
-            </div>
+            <Link
+              to="/new"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#FAF7F0] hover:bg-[#F4F1E8] border border-[#CDC5B4] hover:border-rust text-xs font-mono text-[#1F2A44] hover:text-rust font-bold transition-all shadow-sm active:scale-95"
+              title="Start a new reproduction run (Benchmark Cases or Custom Paper)"
+            >
+              <Plus className="w-3.5 h-3.5 text-rust stroke-[2.5]" />
+              <span>New Run</span>
+            </Link>
 
             <div className="flex items-center bg-[#D9D4C6] rounded-lg p-0.5 border border-[#CDC5B4] text-xs font-medium">
               <button

@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { PenSketchPeakSvg } from './art/PenSketchPeakSvg';
 import { PineBranchSvg } from './art/PineBranchSvg';
 
 export const ProblemScene: React.FC = () => {
-  const [flipped, setFlipped] = useState(false);
+  const flipped = false;
 
   return (
     <div
@@ -204,19 +204,11 @@ export const ProblemScene: React.FC = () => {
                 </div>
               </div>
 
-              {/* Bottom Row: Signature & Flip Button */}
+              {/* Bottom Row: Signature */}
               <div className="flex justify-between items-center pt-2 border-t border-kraft/40">
                 <span className="font-serif italic text-sm text-ink-blue">
                   — The Evaluation Team
                 </span>
-
-                <button
-                  type="button"
-                  onClick={() => setFlipped(true)}
-                  className="px-3 py-1.5 font-mono text-xs uppercase tracking-widest text-rust-ink font-semibold hover:text-rust transition-colors flex items-center gap-1 focus:outline-none focus:ring-1 focus:ring-rust"
-                >
-                  TURN OVER ↻
-                </button>
               </div>
             </div>
           </div>
@@ -271,19 +263,11 @@ export const ProblemScene: React.FC = () => {
               </div>
             </div>
 
-            {/* Bottom Row: Return button */}
+            {/* Bottom Row */}
             <div className="flex justify-between items-center pt-2 border-t border-kraft/40">
               <span className="font-mono text-[10px] uppercase tracking-widest text-ink-soft">
                 BENCHMARK EVALUATION LOG
               </span>
-
-              <button
-                type="button"
-                onClick={() => setFlipped(false)}
-                className="px-3 py-1.5 font-mono text-xs uppercase tracking-widest text-rust-ink font-semibold hover:text-rust transition-colors flex items-center gap-1 focus:outline-none focus:ring-1 focus:ring-rust"
-              >
-                TURN OVER ↺
-              </button>
             </div>
           </div>
         </div>
