@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, FileCheck2, AlertOctagon, Power } from 'lucide-react';
-import { HealthDots } from '../ui/HealthDots';
 import { abortProject, killSwitch } from '../../api/client';
 
 interface NavbarAppProps {
@@ -137,8 +136,6 @@ export const NavbarApp: React.FC<NavbarAppProps> = ({
               REPLAY
             </span>
           )}
-
-          <HealthDots />
 
           <button
             onClick={() => setShowConfirmKill(true)}
