@@ -9,6 +9,7 @@ from typing import Dict, List, Optional
 
 from agent.state import Edit, PatchProposal, ProjectState
 from .policy import compute_fix_signature
+from .paths import resolve_workspace_path
 
 def apply_edits_in_memory(workspace: str, edits: List[Edit]) -> Dict[str, str]:
     """Applies a list of edits in-memory to current file contents, returning new text per file."""
@@ -21,7 +22,7 @@ def apply_edits_in_memory(workspace: str, edits: List[Edit]) -> Dict[str, str]:
         files_to_edit.setdefault(edit.file, []).append(edit)
         
     for rel_path, file_edits in files_to_edit.items():
-        file_path = ws / rel_path
+        file_path = resolve_workspace_path(ws, rel_path)
         if file_path.exists():
             text = file_path.read_text(encoding="utf-8")
         else:
@@ -65,7 +66,7 @@ def make_diff(workspace: str, new_texts: Dict[str, str]) -> str:
     diff_lines = []
     
     for rel_path, new_text in new_texts.items():
-        file_path = ws / rel_path
+        file_path = resolve_workspace_path(ws, rel_path)
         if file_path.exists():
             old_lines = file_path.read_text(encoding="utf-8").splitlines(keepends=True)
         else:
@@ -107,7 +108,7 @@ def apply_patch(state: ProjectState, patch: PatchProposal, workspace: str, run_s
     # Back up original files before modifying
     backups: Dict[str, Optional[str]] = {}
     for rel_path in new_texts.keys():
-        target = ws / rel_path
+        target = resolve_workspace_path(ws, rel_path)
         if target.exists():
             backups[rel_path] = target.read_text(encoding="utf-8")
         else:
@@ -116,7 +117,7 @@ def apply_patch(state: ProjectState, patch: PatchProposal, workspace: str, run_s
 
     # 2. Write files to disk
     for rel_path, new_text in new_texts.items():
-        target = ws / rel_path
+        target = resolve_workspace_path(ws, rel_path)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(new_text, encoding="utf-8", newline="\n")
         
@@ -159,7 +160,7 @@ def revert_patch(state: ProjectState, patch: PatchProposal, workspace: str) -> b
     backups = _PATCH_BACKUPS.get(key)
     if backups is not None:
         for rel_path, orig_text in backups.items():
-            target = ws / rel_path
+            target = resolve_workspace_path(ws, rel_path)
             if orig_text is None:
                 if target.exists():
                     target.unlink()
@@ -168,7 +169,7 @@ def revert_patch(state: ProjectState, patch: PatchProposal, workspace: str) -> b
                 target.write_text(orig_text, encoding="utf-8")
     elif patch.edits:
         for edit in patch.edits:
-            target = ws / edit.file
+            target = resolve_workspace_path(ws, edit.file)
             if target.exists() and edit.op == "replace_text" and edit.old:
                 cur = target.read_text(encoding="utf-8")
                 if edit.new in cur:

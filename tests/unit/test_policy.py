@@ -41,6 +41,22 @@ def test_policy_deny_list_allowed_if_opt_in():
     assert res["passed"] is True
     assert res["requires_extra_confirm"] is True
     assert res["risk_class"] == "deviation"
+
+
+@pytest.mark.parametrize("file_name", ["../outside.py", "/tmp/outside.py", "configs/../outside.py"])
+def test_policy_rejects_paths_outside_workspace(file_name):
+    state = make_test_state()
+    prop = PatchProposal(
+        id="p1", hypothesis_id="H-1", type="code_typo", rationale="fix typo",
+        evidence=["E-001"], alternatives_considered=[], edits=[
+            Edit(file=file_name, op="replace_text", old="old", new="new")
+        ]
+    )
+
+    res = check(state, prop)
+
+    assert res["passed"] is False
+    assert any("P1" in violation and "relative" in violation for violation in res["violations"])
     
 def test_policy_soft_size_threshold():
     state = make_test_state()

@@ -33,6 +33,7 @@ from tools.paths import (
     wheelhouse_dir,
     logs_dir,
     evidence_ledger_path,
+    validate_project_id,
 )
 
 
@@ -238,6 +239,13 @@ def test_tools_paths_functions_and_redirection(tmp_path):
         assert evidence_ledger_path(p_id) == Path(custom_root) / p_id / "evidence.json"
     finally:
         set_runs_root(str(old_root))
+
+
+@pytest.mark.parametrize("project_id", ["../outside", "/tmp/outside", "runs/other", ""])
+def test_project_id_cannot_escape_runs_root(project_id):
+    with pytest.raises(ValueError, match="Invalid project id"):
+        validate_project_id(project_id)
+        run_dir(project_id)
 
 
 def test_conftest_scratch_runs_root_is_isolated_and_on_disk():

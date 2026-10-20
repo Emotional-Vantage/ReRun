@@ -111,3 +111,26 @@ def test_apply_patch_smoke_failure_auto_reverts(tmp_path):
     assert success is False
     assert target.read_text(encoding="utf-8") == "valid = True\n"
     assert "sig_bad" in state.failed_fixes
+
+
+@pytest.mark.parametrize("file_name", ["../outside.py", "/tmp/outside.py"])
+def test_apply_edits_rejects_paths_outside_workspace(tmp_path, file_name):
+    (tmp_path / "inside.py").write_text("value = 1\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="escapes workspace"):
+        apply_edits_in_memory(
+            str(tmp_path),
+            [Edit(file=file_name, op="append_line", new="value = 2")],
+        )
+
+
+def test_apply_edits_rejects_symlink_escape(tmp_path):
+    outside = tmp_path.parent / "rerun-outside.py"
+    outside.write_text("value = 1\n", encoding="utf-8")
+    (tmp_path / "linked.py").symlink_to(outside)
+
+    with pytest.raises(ValueError, match="escapes workspace"):
+        apply_edits_in_memory(
+            str(tmp_path),
+            [Edit(file="linked.py", op="append_line", new="value = 2")],
+        )
