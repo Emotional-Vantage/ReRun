@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -276,8 +277,9 @@ def main() -> None:
         # --reload-dir keeps test edits from restarting the API, and the graceful-shutdown
         # timeout stops an open SSE stream from wedging a reload ("Waiting for connections
         # to close" forever).
+        api_host = os.getenv("RERUN_API_HOST", "127.0.0.1")
         run_cmd(
-            f"{sys.executable} -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 "
+            f"{sys.executable} -m uvicorn backend.app.main:app --host {api_host} --port 8000 "
             "--reload --reload-dir backend --reload-dir agent --reload-dir tools "
             "--reload-dir sandbox --timeout-graceful-shutdown 5"
         )

@@ -1,5 +1,6 @@
 import json
 import os
+import secrets
 from pathlib import Path
 from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Header, Request, Response
@@ -30,6 +31,33 @@ from agent.state import ProjectState, Approval
 from tools import paths
 
 router = APIRouter()
+
+
+def require_operator(request: Optional[Request] = None, authorization: Optional[str] = None) -> None:
+    """Protect state-changing operator actions when a deployment token is configured.
+
+    Local development remains convenient when no token is configured, while a
+    deployment that sets ``RERUN_OPERATOR_TOKEN`` gets bearer-token protection
+    for approvals, lifecycle controls, and administrative actions.
+    """
+    expected = os.getenv("RERUN_OPERATOR_TOKEN", "")
+    if not expected:
+        return
+    scheme, _, presented = (authorization or "").partition(" ")
+    if scheme.lower() != "bearer" or not secrets.compare_digest(presented, expected):
+        raise HTTPException(status_code=401, detail="Operator authentication required")
+
+
+def _benchmark_exists(benchmark_id: str) -> bool:
+    reg_path = "benchmarks/registry.json"
+    if not os.path.exists(reg_path):
+        return False
+    try:
+        with open(reg_path, "r", encoding="utf-8") as f:
+            registry = json.load(f)
+        return any(case.get("id") == benchmark_id for case in registry.get("cases", []))
+    except (OSError, ValueError, TypeError):
+        return False
 
 @router.get("/api/health", response_model=HealthResponse)
 def health_check():
@@ -86,7 +114,8 @@ def get_benchmarks():
     return out
 
 @router.post("/api/projects", response_model=ProjectCreateResponse)
-async def create_project(request: Request):
+async def create_project(request: Request, authorization: Optional[str] = Header(default=None)):
+    require_operator(request, authorization)
     content_type = request.headers.get("content-type", "")
     import hashlib
     import shutil
@@ -101,6 +130,8 @@ async def create_project(request: Request):
         benchmark_id = req_data.get("benchmark_id")
         if not benchmark_id:
             raise HTTPException(status_code=400, detail="Missing benchmark_id in JSON payload")
+        if not _benchmark_exists(benchmark_id):
+            raise HTTPException(status_code=400, detail=f"Unknown benchmark_id: {benchmark_id}")
             
         allow_high_risk = bool(req_data.get("allow_high_risk", False))
         project_id = f"proj_{uuid.uuid4().hex[:8]}"
@@ -221,10 +252,18 @@ async def create_project(request: Request):
         )
 
 @router.post("/api/projects/{id}/start")
-def start_project(id: str):
+def start_project(id: str, request: Request = None, authorization: Optional[str] = Header(default=None)):
+    require_operator(request, authorization)
     state = get_project_state("data/rerun.db", id)
     if not state:
         raise HTTPException(status_code=404, detail="Project not found")
+    if state.phase == "DONE" and not state.abort_requested:
+        raise HTTPException(status_code=409, detail="Completed projects cannot be started again")
+    if state.abort_requested:
+        raise HTTPException(
+            status_code=409,
+            detail="This project was aborted and cannot be restarted; create a new project instead.",
+        )
     state.phase = "INGEST"
     save_project_state("data/rerun.db", id, state.benchmark_id, state.repo_commit, state.phase, state)
     try:
@@ -312,7 +351,8 @@ def get_claims_draft(id: str):
     }
 
 @router.post("/api/projects/{id}/claims/confirm")
-def confirm_claims(id: str, req: ClaimsConfirmRequest):
+def confirm_claims(id: str, req: ClaimsConfirmRequest, request: Request = None, authorization: Optional[str] = Header(default=None)):
+    require_operator(request, authorization)
     state = get_project_state("data/rerun.db", id)
     if not state:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -339,7 +379,8 @@ def confirm_claims(id: str, req: ClaimsConfirmRequest):
     return {"status": "confirmed"}
 
 @router.post("/api/projects/{id}/claims/reject")
-def reject_claims(id: str):
+def reject_claims(id: str, request: Request = None, authorization: Optional[str] = Header(default=None)):
+    require_operator(request, authorization)
     state = get_project_state("data/rerun.db", id)
     if not state:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -358,7 +399,8 @@ def get_provisioning_plan(id: str):
     return state.provisioning_plan or {}
 
 @router.post("/api/projects/{id}/provisioning/approve")
-def approve_provisioning(id: str, req: ProvisioningApproveRequest):
+def approve_provisioning(id: str, req: ProvisioningApproveRequest, request: Request = None, authorization: Optional[str] = Header(default=None)):
+    require_operator(request, authorization)
     state = get_project_state("data/rerun.db", id)
     if not state:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -402,7 +444,8 @@ def approve_provisioning(id: str, req: ProvisioningApproveRequest):
     }
 
 @router.post("/api/projects/{id}/provisioning/reject")
-def reject_provisioning(id: str):
+def reject_provisioning(id: str, request: Request = None, authorization: Optional[str] = Header(default=None)):
+    require_operator(request, authorization)
     state = get_project_state("data/rerun.db", id)
     if not state:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -562,12 +605,13 @@ def _find_project_by_pending_id(pending_id: str, db_path: str = "data/rerun.db")
     return None
 
 @router.post("/api/projects/{project_id}/approvals/{approval_id}")
-def process_project_approval(project_id: str, approval_id: str, req: ApprovalRequest):
+def process_project_approval(project_id: str, approval_id: str, req: ApprovalRequest, request: Request = None, authorization: Optional[str] = Header(default=None)):
     req.project_id = project_id
-    return process_approval(approval_id, req)
+    return process_approval(approval_id, req, request, authorization)
 
 @router.post("/api/approvals/{approval_id}")
-def process_approval(approval_id: str, req: ApprovalRequest):
+def process_approval(approval_id: str, req: ApprovalRequest, request: Request = None, authorization: Optional[str] = Header(default=None)):
+    require_operator(request, authorization)
     target_project_id = req.project_id or _find_project_by_pending_id(approval_id)
     if not target_project_id:
         raise HTTPException(status_code=404, detail="Approval not found")
@@ -782,7 +826,8 @@ def get_report_html(id: str):
     return Response(content=report["html"], media_type="text/html")
 
 @router.post("/api/projects/{id}/abort")
-def abort_project(id: str):
+def abort_project(id: str, request: Request = None, authorization: Optional[str] = Header(default=None)):
+    require_operator(request, authorization)
     state = get_project_state("data/rerun.db", id)
     if not state:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -805,7 +850,8 @@ def get_key_stats():
     return key_rotator.get_stats()
 
 @router.delete("/api/projects/{id}")
-def delete_project(id: str):
+def delete_project(id: str, request: Request = None, authorization: Optional[str] = Header(default=None)):
+    require_operator(request, authorization)
     stop_project_worker(id)
     try:
         import sandbox.manager
@@ -846,7 +892,8 @@ def get_project_disk(id: str):
     }
 
 @router.post("/api/admin/kill-switch")
-def global_kill_switch():
+def global_kill_switch(request: Request = None, authorization: Optional[str] = Header(default=None)):
+    require_operator(request, authorization)
     import sandbox.manager
     runner.stop_all_workers()
     sandbox.manager.kill_all_rerun_containers()
