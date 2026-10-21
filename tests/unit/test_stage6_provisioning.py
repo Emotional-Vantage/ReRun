@@ -93,6 +93,36 @@ def test_sdist_only_dependency_triggers_needs_build_without_code_execution(tmp_p
     assert "uncompiled_sdist_pkg" in plan["sdist_blockers"] or "uncompiled-sdist-pkg" in plan["sdist_blockers"]
     assert not trap_marker.exists()
 
+
+def test_provisioning_fails_when_requested_wheels_are_missing(tmp_path):
+    result = download_wheels_for_project(
+        project_id="proj_missing_wheels",
+        packages=["missing-package==1.0.0"],
+        dest_wheelhouse=tmp_path / "wheelhouse",
+        allow_network=False,
+    )
+
+    assert result["success"] is False
+    assert result["status"] == "FAILED"
+    assert result["missing_packages"] == ["missing-package"]
+
+
+def test_provisioning_reports_partial_wheelhouse(tmp_path):
+    wheelhouse = tmp_path / "wheelhouse"
+    wheelhouse.mkdir()
+    (wheelhouse / "available_pkg-1.0.0-py3-none-any.whl").write_bytes(b"wheel")
+
+    result = download_wheels_for_project(
+        project_id="proj_partial_wheels",
+        packages=["available-pkg==1.0.0", "missing-package==1.0.0"],
+        dest_wheelhouse=wheelhouse,
+        allow_network=False,
+    )
+
+    assert result["success"] is False
+    assert result["status"] == "PARTIAL"
+    assert result["missing_packages"] == ["missing-package"]
+
 def test_fixture_repo_data_science_stack_installs_and_runs_offline(tmp_path):
     try:
         import docker

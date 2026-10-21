@@ -156,6 +156,10 @@ def check(state, proposal, workspace: str = None) -> Dict[str, Any]:
     # P1 & P2: Path allow-list & deny-list
     for edit in proposal.edits:
         f = edit.file.replace("\\", "/")
+
+        if not f or f.startswith("/") or f.split("/")[0].endswith(":") or ".." in Path(f).parts:
+            violations.append(f"P1: Patch path {edit.file!r} must stay relative to the workspace")
+            continue
         
         allowed_ext = f.endswith((".txt", ".yaml", ".yml", ".toml", ".json", ".py"))
         if not allowed_ext:
@@ -290,4 +294,3 @@ def check_patch(arg1, arg2, workspace=None):
     if isinstance(arg1, ProjectState):
         return check(arg1, arg2, workspace)
     return check(arg2, arg1, workspace)
-

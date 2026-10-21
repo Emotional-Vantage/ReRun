@@ -473,6 +473,11 @@ def download_wheels_for_project(
             f.write(f"{p}\n")
 
     logs = []
+    requested_names = [
+        normalize_package_name(re.split(r"[<>=!~ ]", str(package), maxsplit=1)[0])
+        for package in packages
+    ]
+    requested_names = [name for name in requested_names if name]
     logs.append(f"Starting provisioning for project {project_id}")
     logs.append(f"Target packages: {packages}")
     logs.append(f"Python image: {python_image}")
@@ -498,6 +503,7 @@ def download_wheels_for_project(
         if p_name not in current_in_dest:
             remaining.append(p)
 
+    download_error = None
     if remaining and allow_network:
         try:
             import docker
@@ -521,14 +527,34 @@ def download_wheels_for_project(
             )
             logs.append(f"Downloaded via isolated provisioning container:\n{container_log.decode('utf-8', errors='replace')}")
         except Exception as e:
-            logs.append(f"Provisioning container run error (or offline mode): {e}")
+            download_error = str(e)
+            logs.append(f"Provisioning container run error: {e}")
+
+    wheel_files = list(dest_wheelhouse.glob("*.whl"))
+    available_names = {
+        normalize_package_name(f.name.split("-")[0])
+        for f in wheel_files
+    }
+    missing_packages = sorted(set(requested_names) - available_names)
+    if missing_packages:
+        available_requested = set(requested_names) & available_names
+        status = "PARTIAL" if available_requested else "FAILED"
+        if download_error:
+            logs.append(f"Missing requested packages after download: {missing_packages}")
+        else:
+            logs.append(f"Missing requested packages: {missing_packages}")
+    else:
+        status = "COMPLETED"
 
     with open(log_path, "w", encoding="utf-8") as f:
         f.write("\n".join(logs) + "\n")
 
-    wheel_files = list(dest_wheelhouse.glob("*.whl"))
     return {
-        "success": True,
+        "success": status == "COMPLETED",
+        "status": status,
+        "requested_packages": requested_names,
+        "missing_packages": missing_packages,
+        "error": download_error,
         "downloaded_count": len(wheel_files),
         "wheel_files": [f.name for f in wheel_files],
         "log_path": str(log_path)

@@ -14,6 +14,7 @@ ErrorClass = Literal[
     "metric_extraction_failed", "unknown"
 ]
 RiskClass = Literal["environment_fix", "bug_fix", "config_alignment", "deviation"]
+ProvisioningStatus = Literal["NOT_REQUIRED", "PROPOSED", "APPROVED", "PARTIAL", "FAILED", "COMPLETED"]
 
 
 class Tolerance(BaseModel):
@@ -211,6 +212,7 @@ class ProjectState(BaseModel):
     abort_requested: bool = False
     provisioning_plan: dict | None = None
     provisioning_approved: bool = False
+    provisioning_status: ProvisioningStatus = "NOT_REQUIRED"
     # Remote GPU execution (DigitalOcean Gradient). `remote_plan` holds the
     # priced offer the operator is shown; `remote_receipt` holds what the run
     # actually cost and where it ran, which the report prints verbatim so a
