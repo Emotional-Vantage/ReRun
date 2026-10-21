@@ -296,6 +296,7 @@ def get_project(id: str):
         "attempts": [a.model_dump() for a in state.attempts],
         "patches": [p.model_dump() for p in state.patches],
         "provisioning_plan": state.provisioning_plan,
+        "provisioning_status": state.provisioning_status,
         "status": state.final.get("status") if state.final else state.phase,
         "report_available": bool(state.final and state.final.get("report")),
         "final": state.final.get("status") and {
@@ -423,10 +424,36 @@ def approve_provisioning(id: str, req: ProvisioningApproveRequest, request: Requ
     python_image = plan.get("python_image", "rerun-base:py311")
     target_whl = paths.wheelhouse_dir(id)
 
+    state.provisioning_status = "APPROVED"
+    state.provisioning_plan = {**plan, "provisioning_status": "APPROVED"}
     res = download_wheels_for_project(id, packages_to_download, target_whl, python_image=python_image)
 
     if res.get("log_path") and os.path.exists(res["log_path"]):
         record_evidence(state, "log", res["log_path"], None, None, "provision_wheels", f"prov_{id}")
+
+    result_status = res.get("status", "FAILED")
+    state.provisioning_plan = {
+        **plan,
+        "provisioning_result": res,
+    }
+    state.provisioning_status = result_status
+    if result_status != "COMPLETED":
+        emit_event(
+            state,
+            "system",
+            "provisioning_failed",
+            f"Provisioning {result_status.lower()}: missing packages {res.get('missing_packages', [])}",
+        )
+        save_project_state("data/rerun.db", id, state.benchmark_id, state.repo_commit, state.phase, state)
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "message": "Provisioning did not complete",
+                "status": result_status,
+                "missing_packages": res.get("missing_packages", []),
+                "error": res.get("error"),
+            },
+        )
 
     state.provisioning_approved = True
     if state.pending and state.pending.get("kind") == "provisioning":
@@ -438,7 +465,7 @@ def approve_provisioning(id: str, req: ProvisioningApproveRequest, request: Requ
 
     start_project_worker(id, allow_resume=True)
     return {
-        "status": "approved",
+        "status": result_status.lower(),
         "downloaded_count": res.get("downloaded_count", 0),
         "wheel_files": res.get("wheel_files", [])
     }

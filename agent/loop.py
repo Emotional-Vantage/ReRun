@@ -608,6 +608,7 @@ def handle_preflight(state: ProjectState, deps: dict):
 
     if plan.get("needed") and not state.provisioning_approved:
         state.provisioning_plan = plan
+        state.provisioning_status = "PROPOSED"
         state.pending = {
             "kind": "provisioning",
             "id": f"prov_{state.project_id}",
@@ -627,6 +628,18 @@ def handle_preflight(state: ProjectState, deps: dict):
             target_whl,
             python_image=plan["python_image"]
         )
+        state.provisioning_status = res.get("status", "FAILED")
+        state.provisioning_plan = {**plan, "provisioning_result": res}
+        if res.get("status") != "COMPLETED":
+            state.preflight["blockers"].append("PROVISIONING_FAILED")
+            state.phase = "STATUS"
+            emit_event(
+                state,
+                "system",
+                "provisioning_failed",
+                f"Provisioning {state.provisioning_status.lower()}: missing packages {res.get('missing_packages', [])}",
+            )
+            return
         if res.get("log_path") and os.path.exists(res["log_path"]):
             record_evidence(state, "log", res["log_path"], None, None, "provision_wheels", f"prov_{state.project_id}")
         emit_event(state, "system", "provisioning_done", "Wheel packages downloaded into project wheelhouse")
